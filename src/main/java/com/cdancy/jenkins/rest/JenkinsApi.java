@@ -107,6 +107,10 @@ public final class JenkinsApi
             )
         );
 
+        if (!builder.enableDefaultExceptionMapper) {
+            restBuilder.property("microprofile.rest.client.disable.default.mapper", true);
+        }
+
         return restBuilder;
     }
 
@@ -159,6 +163,7 @@ public final class JenkinsApi
         private URI endpoint;
         private Object[] components;
         private JenkinsAuthentication creds;
+        private boolean enableDefaultExceptionMapper;
 
         public Builder endpoint(String endpoint)
         {
@@ -181,6 +186,12 @@ public final class JenkinsApi
         public Builder properties(Map<String,Object> properties)
         {
             this.properties = properties;
+            return this;
+        }
+
+        public Builder enableDefaultExceptionMapper()
+        {
+            this.enableDefaultExceptionMapper = true;
             return this;
         }
 

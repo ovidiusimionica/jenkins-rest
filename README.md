@@ -1,8 +1,39 @@
+# jenkins-rest
+
+I want thank to Christopher Dancy for doing the heavy lifting by describing the Jenkins rest API ans a java library!!!
+
+The following is a NOTICE oF CHANGE and DEPRECATION:
+
+
+## NOTICE OF CHANGE
+
+### Setup
+
+Client's can be built like so:
+```
+        JenkinsApi api = new JenkinsApi.Builder()
+            .credentials(new JenkinsAuthentication.Builder().credentials("admin:admin").build())            
+            .endpoint(ENDPOINT) // Mandatory! change ENDPOINT to an url that fits for your case ( where your Jenkins server listens to ) e.g.: to http://127.0.0.1:8080
+            .build();
+```
+
+
+### Run local tests
+
+Integration tests require a test-containers compatible environment setup, internet connection and can be run with:
+```
+        ./gradlew check
+```
+
+
+## NOTICE OF DEPRECATION
+
+the below information is obsolete, I'll keep it here for history and endorsment.  
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.cdancy/jenkins-rest/badge.png)](https://maven-badges.herokuapp.com/maven-central/io.github.cdancy/jenkins-rest)
 [![Stack Overflow](https://img.shields.io/badge/stack%20overflow-jenkins&#8211;rest-4183C4.svg)](https://stackoverflow.com/questions/tagged/jenkins+rest)
 
-# jenkins-rest
+
 
 Java client is built on the top of jclouds for working with Jenkins REST API.
 

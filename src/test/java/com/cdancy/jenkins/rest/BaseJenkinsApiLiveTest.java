@@ -58,7 +58,6 @@ public class BaseJenkinsApiLiveTest
     {
         this.api = new Builder()
             .credentials(inferTestAuthentication())
-            .properties(Collections.singletonMap("microprofile.rest.client.disable.default.mapper", true))
             .endpoint(ENDPOINT)
             .build();
     }

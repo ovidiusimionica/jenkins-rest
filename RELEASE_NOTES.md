@@ -1,3 +1,7 @@
+
+### The END notice (November 17, 2025)!
+* this is the end of supporting github release pipeline on this git repository fork! If you want a binary then just checkout (or fork) and build!  
+
 ### Version 1.0.2 (September 29, 2022)
 * ADDED: extensive build info. - [Pull Request 259](https://github.com/cdancy/jenkins-rest/pull/259)
 
