@@ -1,0 +1,18 @@
+[versions]
+java = "21"
+javaShortVersion = "21"
+pluginDetekt = "1.23.6"
+pluginKover = "0.9.2"
+pluginKtlint = "12.1.1"
+pluginSonarqube = "4.0.0.2929"
+
+[libraries]
+plugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "pluginDetekt" }
+plugin-kover = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "pluginKover" }
+plugin-ktlint = { module = "org.jlleitschuh.gradle:ktlint-gradle", version.ref = "pluginKtlint" }
+plugin-sonarqube = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "pluginSonarqube" }
+
+
+[bundles]
+
+[plugins]

@@ -17,29 +17,52 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.Collections;
 import java.util.List;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.json.SerializedNames;
+public final class StageFlowNode {
 
-@AutoValue
-public abstract class StageFlowNode {
+    private final String name;
+    private final String status;
+    private final long startTimeMillis;
+    private final long durationTimeMillis;
+    private final List<Long> parentNodes;
 
-   public abstract String name();
+    @JsonCreator
+    public StageFlowNode(
+        @JsonProperty("name") String name,
+        @JsonProperty("status") String status,
+        @JsonProperty("startTimeMillis") long startTimeMillis,
+        @JsonProperty("durationTimeMillis") long durationTimeMillis,
+        @JsonProperty("parentNodes") List<Long> parentNodes
+    ) {
+        this.name = name;
+        this.status = status;
+        this.startTimeMillis = startTimeMillis;
+        this.durationTimeMillis = durationTimeMillis;
+        this.parentNodes = parentNodes != null ? List.copyOf(parentNodes) : Collections.emptyList();
+    }
 
-   public abstract String status();
+    public String getName() {
+        return name;
+    }
 
-   public abstract long startTimeMillis();
+    public String getStatus() {
+        return status;
+    }
 
-   public abstract long durationTimeMillis();
+    public long getStartTimeMillis() {
+        return startTimeMillis;
+    }
 
-   public abstract List<Long> parentNodes();
+    public long getDurationTimeMillis() {
+        return durationTimeMillis;
+    }
 
-   StageFlowNode() {
-   }
-
-   @SerializedNames({ "name", "status", "startTimeMillis", "durationTimeMillis", "parentNodes" })
-   public static StageFlowNode create(String name, String status, long startTimeMillis, long durationTimeMillis, List<Long> parentNodes) {
-      return new AutoValue_StageFlowNode(name, status, startTimeMillis, durationTimeMillis, parentNodes);
-   }
+    public List<Long> getParentNodes() {
+        return parentNodes;
+    }
 }

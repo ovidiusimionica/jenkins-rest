@@ -17,49 +17,67 @@
 
 package com.cdancy.jenkins.rest.features;
 
-import javax.inject.Named;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.HEAD;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.MediaType;
-
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
-import com.cdancy.jenkins.rest.parsers.RequestStatusParser;
-import org.jclouds.rest.annotations.RequestFilters;
-import org.jclouds.rest.annotations.ResponseParser;
-import org.jclouds.rest.annotations.Fallback;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.of;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.ofSystemInfo;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.ofVoid;
 
 import com.cdancy.jenkins.rest.domain.system.SystemInfo;
-import com.cdancy.jenkins.rest.fallbacks.JenkinsFallbacks;
-import com.cdancy.jenkins.rest.filters.JenkinsAuthenticationFilter;
-import com.cdancy.jenkins.rest.parsers.SystemInfoFromJenkinsHeaders;
+import com.cdancy.jenkins.rest.parsers.ResponseResult;
 
-@RequestFilters(JenkinsAuthenticationFilter.class)
-@Consumes(MediaType.APPLICATION_JSON)
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.HEAD;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
 @Path("/")
+@Consumes(MediaType.APPLICATION_JSON)
 public interface SystemApi {
 
-   @Named("system:info")
-   @Fallback(JenkinsFallbacks.SystemInfoOnError.class)
-   @ResponseParser(SystemInfoFromJenkinsHeaders.class)
-   @HEAD
-   SystemInfo systemInfo();
+    /**
+     * Raw HEAD request to get Jenkins system info headers.
+     */
+    @HEAD
+    @Path("/")
+    Response systemInfoRaw();
 
-   @Named("system:quiet-down")
-   @Path("quietDown")
-   @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-   @ResponseParser(RequestStatusParser.class)
-   @Consumes(MediaType.TEXT_HTML)
-   @POST
-   RequestStatus quietDown();
+    /**
+     * Functional helper that parses Jenkins system info headers into a SystemInfo domain object.
+     */
+    default ResponseResult<SystemInfo> systemInfo() {
+        Response response = systemInfoRaw();
+        return ofSystemInfo(response);
+    }
 
-   @Named("system:cancel-quiet-down")
-   @Path("cancelQuietDown")
-   @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-   @ResponseParser(RequestStatusParser.class)
-   @Consumes(MediaType.TEXT_HTML)
-   @POST
-   RequestStatus cancelQuietDown();
+    /**
+     * Raw POST request to quiet down the Jenkins system.
+     */
+    @POST
+    @Path("quietDown")
+    @Consumes(MediaType.TEXT_HTML)
+    Response quietDownRaw();
 
+    /**
+     * Helper for quietDown that returns a typed result.
+     */
+    default ResponseResult<Void> quietDown() {
+        return ofVoid(quietDownRaw());
+    }
+
+    /**
+     * Raw POST request to cancel the quiet down mode.
+     */
+    @POST
+    @Path("/cancelQuietDown")
+    @Consumes(MediaType.TEXT_HTML)
+    Response cancelQuietDownRaw();
+
+    /**
+     * Helper for cancelQuietDown that returns a typed result.
+     */
+    default ResponseResult<Void> cancelQuietDown() {
+        return ofVoid(cancelQuietDownRaw());
+    }
 }

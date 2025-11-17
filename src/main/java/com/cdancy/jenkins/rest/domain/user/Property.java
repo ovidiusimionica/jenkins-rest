@@ -1,18 +1,18 @@
 package com.cdancy.jenkins.rest.domain.user;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@AutoValue
-public abstract class Property {
+public final class Property {
 
-    public abstract String clazz();
+    private final String clazz;
 
-    Property() {
+    @JsonCreator
+    public Property(@JsonProperty("_class") String clazz) {
+        this.clazz = clazz;
     }
 
-    @SerializedNames({"_class"})
-    public static Property create(final String clazz) {
-        return new AutoValue_Property(clazz);
+    public String getClazz() {
+        return clazz;
     }
 }

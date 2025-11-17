@@ -1,0 +1,18 @@
+<flow-definition plugin="workflow-job@1145.v7f2433caa07f">
+  <actions/>
+  <description/>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+    <script>
+      node {
+      sh 'sleep 5'
+      sh 'echo "Hello artifact!" > artifact.txt'
+      archiveArtifacts artifacts: 'artifact.txt', fingerprint: true
+      }
+    </script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

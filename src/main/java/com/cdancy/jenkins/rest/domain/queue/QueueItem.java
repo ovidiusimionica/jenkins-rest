@@ -17,77 +17,128 @@
 
 package com.cdancy.jenkins.rest.domain.queue;
 
+import com.cdancy.jenkins.rest.domain.common.FromStringToMapDeserializer;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.jclouds.json.SerializedNames;
-import org.jclouds.javax.annotation.Nullable;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public final class QueueItem
+{
 
-import com.google.auto.value.AutoValue;
-import com.google.common.collect.Maps;
+    private final boolean blocked;
+    private final boolean buildable;
+    private final int id;
+    private final long inQueueSince;
+    private final Map<String, String> params;
+    private final boolean stuck;
+    private final Task task;
+    private final String url;
+    private final String why;
+    private final long buildableStartMilliseconds;
+    private final boolean cancelled;
+    private final Executable executable;
+    private final Long timestamp;
 
-@AutoValue
-public abstract class QueueItem {
+    @JsonCreator
+    public QueueItem(
+        @JsonProperty("blocked") boolean blocked,
+        @JsonProperty("buildable") boolean buildable,
+        @JsonProperty("id") int id,
+        @JsonProperty("inQueueSince") long inQueueSince,
+        @JsonProperty("params") @JsonDeserialize(using = FromStringToMapDeserializer.class)
+        Map<String, String> params,
+        @JsonProperty("stuck") boolean stuck,
+        @JsonProperty("task") Task task,
+        @JsonProperty("url") String url,
+        @JsonProperty("why") String why,
+        @JsonProperty("buildableStartMilliseconds") long buildableStartMilliseconds,
+        @JsonProperty("cancelled") boolean cancelled,
+        @JsonProperty("executable") Executable executable,
+        @JsonProperty("timestamp") Long timestamp
+    )
+    {
+        this.blocked = blocked;
+        this.buildable = buildable;
+        this.id = id;
+        this.inQueueSince = inQueueSince;
+        this.params = params != null ? Collections.unmodifiableMap(new HashMap<>(params)) : Collections.emptyMap();
+        this.stuck = stuck;
+        this.task = task;
+        this.url = url;
+        this.why = why;
+        this.buildableStartMilliseconds = buildableStartMilliseconds;
+        this.cancelled = cancelled;
+        this.executable = executable;
+        this.timestamp = timestamp;
+    }
 
-   public abstract boolean blocked();
+    public boolean isBlocked()
+    {
+        return blocked;
+    }
 
-   public abstract boolean buildable();
+    public boolean isBuildable()
+    {
+        return buildable;
+    }
 
-   public abstract int id();
+    public int getId()
+    {
+        return id;
+    }
 
-   public abstract long inQueueSince();
+    public long getInQueueSince()
+    {
+        return inQueueSince;
+    }
 
-   public abstract Map<String, String> params();
+    public Map<String, String> getParams()
+    {
+        return params;
+    }
 
-   public abstract boolean stuck();
+    public boolean isStuck()
+    {
+        return stuck;
+    }
 
-   public abstract Task task();
+    public Task getTask()
+    {
+        return task;
+    }
 
-   public abstract String url();
+    public String getUrl()
+    {
+        return url;
+    }
 
-   @Nullable
-   public abstract String why();
+    public String getWhy()
+    {
+        return why;
+    }
 
-    // https://javadoc.jenkins.io/hudson/model/Queue.NotWaitingItem.html
-    /**
-     * When did this job exit the Queue.waitingList phase?
-     * For a Queue.NotWaitingItem
-     * @return The time expressed in milliseconds after January 1, 1970, 0:00:00 GMT.
-     */
-   public abstract long buildableStartMilliseconds();
+    public long getBuildableStartMilliseconds()
+    {
+        return buildableStartMilliseconds;
+    }
 
-   public abstract boolean cancelled();
+    public boolean isCancelled()
+    {
+        return cancelled;
+    }
 
-   @Nullable
-   public abstract Executable executable();
+    public Executable getExecutable()
+    {
+        return executable;
+    }
 
-    // https://javadoc.jenkins.io/hudson/model/Queue.WaitingItem.html
-    /**
-     * This item can be run after this time.
-     * For a Queue.WaitingItem
-     * @return The time expressed in milliseconds after January 1, 1970, 0:00:00 GMT.
-     */
-   @Nullable
-   public abstract Long timestamp();
-
-   QueueItem() {
-   }
-
-   @SerializedNames({ "blocked", "buildable", "id", "inQueueSince", "params", "stuck", "task", "url", "why",
-         "buildableStartMilliseconds", "cancelled", "executable", "timestamp"})
-   public static QueueItem create(boolean blocked, boolean buildable, int id, long inQueueSince, String params,
-         boolean stuck, Task task, String url, String why, long buildableStartMilliseconds,
-	 boolean cancelled, Executable executable, Long timestamp) {
-      Map<String, String> parameters = Maps.newHashMap();
-      if (params != null) {
-         params = params.trim();
-         if (params.length() > 0) {
-            for (String keyValue : params.split("\n")) {
-               String[] pair = keyValue.split("=");
-               parameters.put(pair[0], pair.length > 1 ? pair[1] : "");
-            }
-         }
-      }
-      return new AutoValue_QueueItem(blocked, buildable, id, inQueueSince, parameters, stuck, task, url, why,
-            buildableStartMilliseconds, cancelled, executable, timestamp);
-   }
+    public Long getTimestamp()
+    {
+        return timestamp;
+    }
 }

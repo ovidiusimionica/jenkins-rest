@@ -16,21 +16,28 @@
  */
 package com.cdancy.jenkins.rest.domain.user;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@AutoValue
-public abstract class ApiToken {
+public final class ApiToken {
 
-    public abstract String status();
+    private final String status;
+    private final ApiTokenData data;
 
-    public abstract ApiTokenData data();
-
-    ApiToken() {
+    @JsonCreator
+    public ApiToken(
+        @JsonProperty("status") String status,
+        @JsonProperty("data") ApiTokenData data
+    ) {
+        this.status = status;
+        this.data = data;
     }
 
-    @SerializedNames({"status", "data"})
-    public static ApiToken create(final String status, final ApiTokenData data) {
-        return new AutoValue_ApiToken(status, data);
+    public String getStatus() {
+        return status;
+    }
+
+    public ApiTokenData getData() {
+        return data;
     }
 }

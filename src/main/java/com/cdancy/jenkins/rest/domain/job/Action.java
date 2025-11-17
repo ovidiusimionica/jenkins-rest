@@ -17,38 +17,53 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
-import com.google.auto.value.AutoValue;
-import com.google.common.collect.ImmutableList;
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Collections;
 import java.util.List;
 
-@AutoValue
-public abstract class Action {
+public final class Action {
 
-    public abstract List<Cause> causes();
+    private final List<Cause> causes;
+    private final List<Parameter> parameters;
+    private final String text;
+    private final String iconPath;
+    private final String clazz;
 
-    public abstract List<Parameter> parameters();
-
-    @Nullable
-    public abstract String text();
-
-    @Nullable
-    public abstract String iconPath();
-
-    @Nullable
-    public abstract String _class();
-    Action() {
+    @JsonCreator
+    public Action(
+        @JsonProperty("causes") List<Cause> causes,
+        @JsonProperty("parameters") List<Parameter> parameters,
+        @JsonProperty("text") String text,
+        @JsonProperty("iconPath") String iconPath,
+        @JsonProperty("_class") String clazz
+    ) {
+        this.causes = causes != null ? List.copyOf(causes) : Collections.emptyList();
+        this.parameters = parameters != null ? List.copyOf(parameters) : Collections.emptyList();
+        this.text = text;
+        this.iconPath = iconPath;
+        this.clazz = clazz;
     }
 
-    @SerializedNames({"causes", "parameters", "text", "iconPath", "_class"})
-    public static Action create(final List<Cause> causes, final List<Parameter> parameters, final String text, final String iconPath, final String _class) {
-        return new AutoValue_Action(
-            causes != null ? ImmutableList.copyOf(causes) : ImmutableList.<Cause>of(),
-            parameters != null ? ImmutableList.copyOf(parameters) : ImmutableList.<Parameter>of(),
-            text, iconPath, _class
-        );
+    public List<Cause> getCauses() {
+        return causes;
+    }
+
+    public List<Parameter> getParameters() {
+        return parameters;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public String getIconPath() {
+        return iconPath;
+    }
+
+    @JsonProperty("_class")
+    public String getClazz() {
+        return clazz;
     }
 }
-

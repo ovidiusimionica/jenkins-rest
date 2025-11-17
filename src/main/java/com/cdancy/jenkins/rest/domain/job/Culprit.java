@@ -17,22 +17,28 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.google.auto.value.AutoValue;
+public final class Culprit {
 
-@AutoValue
-public abstract class Culprit {
+    private final String absoluteUrl;
+    private final String fullName;
 
-   public abstract String absoluteUrl();
+    @JsonCreator
+    public Culprit(
+        @JsonProperty("absoluteUrl") String absoluteUrl,
+        @JsonProperty("fullName") String fullName
+    ) {
+        this.absoluteUrl = absoluteUrl;
+        this.fullName = fullName;
+    }
 
-   public abstract String fullName();
+    public String getAbsoluteUrl() {
+        return absoluteUrl;
+    }
 
-   Culprit() {
-   }
-
-   @SerializedNames({ "absoluteUrl", "fullName" })
-   public static Culprit create(String absoluteUrl, String fullName) {
-      return new AutoValue_Culprit(absoluteUrl, fullName);
-   }
+    public String getFullName() {
+        return fullName;
+    }
 }

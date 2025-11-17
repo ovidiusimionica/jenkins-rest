@@ -17,24 +17,35 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.google.auto.value.AutoValue;
+public final class ProgressiveText {
 
-@AutoValue
-public abstract class ProgressiveText {
+    private final String text;
+    private final int size;
+    private final boolean hasMoreData;
 
-   public abstract String text();
+    @JsonCreator
+    public ProgressiveText(
+        @JsonProperty("text") String text,
+        @JsonProperty("size") int size,
+        @JsonProperty("hasMoreData") boolean hasMoreData
+    ) {
+        this.text = text;
+        this.size = size;
+        this.hasMoreData = hasMoreData;
+    }
 
-   public abstract int size();
+    public String getText() {
+        return text;
+    }
 
-   public abstract boolean hasMoreData();
+    public int getSize() {
+        return size;
+    }
 
-   ProgressiveText() {
-   }
-
-   @SerializedNames({ "text", "size", "hasMoreData" })
-   public static ProgressiveText create(String text, int size, boolean hasMoreData) {
-      return new AutoValue_ProgressiveText(text, size, hasMoreData);
-   }
+    public boolean hasMoreData() {
+        return hasMoreData;
+    }
 }

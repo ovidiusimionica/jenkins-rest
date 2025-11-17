@@ -17,30 +17,48 @@
 
 package com.cdancy.jenkins.rest.filters;
 
-import org.jclouds.http.HttpException;
-import org.jclouds.http.HttpRequest;
-import org.jclouds.http.HttpRequestFilter;
 
 import com.cdancy.jenkins.rest.JenkinsAuthentication;
 import static com.cdancy.jenkins.rest.JenkinsConstants.USER_IN_USER_API;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.ws.rs.client.ClientRequestContext;
+import jakarta.ws.rs.client.ClientRequestFilter;
+import java.io.IOException;
+import java.net.URI;
 
-@Singleton
-public class JenkinsUserInjectionFilter implements HttpRequestFilter {
+public class JenkinsUserInjectionFilter implements ClientRequestFilter
+{
 
     private static final String USER_PLACE_HOLDER = "%7B" + USER_IN_USER_API + "%7D";
     private final JenkinsAuthentication creds;
 
-    @Inject
     public JenkinsUserInjectionFilter(final JenkinsAuthentication creds) {
         this.creds = creds;
     }
 
     @Override
-    public HttpRequest filter(final HttpRequest request) throws HttpException {
-        final String requestPath = request.getEndpoint().getRawPath().replaceAll(USER_PLACE_HOLDER, creds.identity);
-        return request.toBuilder().fromHttpRequest(request).replacePath(requestPath).build();
+    public void filter(ClientRequestContext requestContext) throws IOException
+    {
+        URI originalUri = requestContext.getUri();
+        String originalPath = originalUri.getRawPath();
+
+        if (originalPath.contains(USER_PLACE_HOLDER)) {
+            String replacedPath = originalPath.replace(USER_PLACE_HOLDER, creds.getIdentity());
+
+            try {
+                URI newUri = new URI(
+                    originalUri.getScheme(),
+                    originalUri.getUserInfo(),
+                    originalUri.getHost(),
+                    originalUri.getPort(),
+                    replacedPath,
+                    originalUri.getQuery(),
+                    originalUri.getFragment()
+                );
+                requestContext.setUri(newUri);
+            } catch (Exception e) {
+                throw new IOException("Failed to replace user placeholder in Jenkins API path", e);
+            }
+        }
     }
 }

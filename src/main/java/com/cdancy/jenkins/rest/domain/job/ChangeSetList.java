@@ -17,29 +17,33 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.Collections;
 import java.util.List;
 
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+@JsonIgnoreProperties({"_class"})
+public final class ChangeSetList {
 
-import com.google.auto.value.AutoValue;
-import com.google.common.collect.ImmutableList;
+    private final List<ChangeSet> items;
+    private final String kind;
 
-@AutoValue
-public abstract class ChangeSetList {
+    @JsonCreator
+    public ChangeSetList(
+        @JsonProperty("items") List<ChangeSet> items,
+        @JsonProperty("kind") String kind
+    ) {
+        this.items = items != null ? List.copyOf(items) : Collections.emptyList();
+        this.kind = kind;
+    }
 
-   public abstract List<ChangeSet> items();
+    public List<ChangeSet> getItems() {
+        return items;
+    }
 
-   @Nullable
-   public abstract String kind();
-
-   ChangeSetList() {
-   }
-
-   @SerializedNames({ "items", "kind" })
-   public static ChangeSetList create(List<ChangeSet> items, String kind) {
-      return new AutoValue_ChangeSetList(
-         items != null ? ImmutableList.copyOf(items) : ImmutableList.<ChangeSet> of(), 
-         kind);
-   }
+    public String getKind() {
+        return kind;
+    }
 }

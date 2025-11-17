@@ -17,46 +17,45 @@
 
 package com.cdancy.jenkins.rest.features;
 
-import javax.inject.Named;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Produces;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.of;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.ofVoid;
 
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
 import com.cdancy.jenkins.rest.domain.plugins.Plugins;
-import com.cdancy.jenkins.rest.fallbacks.JenkinsFallbacks;
-import com.cdancy.jenkins.rest.filters.JenkinsAuthenticationFilter;
-import com.cdancy.jenkins.rest.parsers.RequestStatusParser;
+import com.cdancy.jenkins.rest.parsers.ResponseResult;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Response;
 
-import org.jclouds.rest.annotations.RequestFilters;
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.rest.annotations.Fallback;
-import org.jclouds.rest.annotations.Payload;
-import org.jclouds.rest.annotations.PayloadParam;
-import org.jclouds.rest.annotations.ResponseParser;
-
-@RequestFilters(JenkinsAuthenticationFilter.class)
-@Consumes(MediaType.APPLICATION_JSON)
 @Path("/pluginManager")
+@Consumes(MediaType.APPLICATION_JSON)
 public interface PluginManagerApi {
 
-    @Named("pluginManager:plugins")
-    @Path("/api/json")
-    @Fallback(JenkinsFallbacks.PluginsOnError.class)
     @GET
-    Plugins plugins(@Nullable @QueryParam("depth") Integer depth,
-            @Nullable @QueryParam("tree") String tree);
+    @Path("/api/json")
+    Response pluginsRaw(@QueryParam("depth") Integer depth,
+                                    @QueryParam("tree") String tree);
 
-    @Named("pluginManager:install-necessary-plugins")
-    @Path("/installNecessaryPlugins")
-    @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-    @ResponseParser(RequestStatusParser.class)
-    @Produces(MediaType.APPLICATION_XML)
-    @Payload("<jenkins><install plugin=\"{pluginID}\"/></jenkins>")
+
+    default ResponseResult<Plugins> plugins(Integer depth, String tree) {
+        Response response = pluginsRaw(depth, tree);
+        return of(response, Plugins.class);
+    }
+
     @POST
-    RequestStatus installNecessaryPlugins(@PayloadParam(value = "pluginID") String pluginID);
+    @Path("/installNecessaryPlugins")
+    @Produces(MediaType.APPLICATION_XML)
+    Response installNecessaryPlugins(String payload);
+
+    /**
+     * Default helper to install a plugin with functional-style response.
+     */
+    default ResponseResult<Void> installNecessaryPluginsById(String pluginID) {
+        String xmlPayload = "<jenkins><install plugin=\"" + pluginID + "\"/></jenkins>";
+        return ofVoid(installNecessaryPlugins(xmlPayload));
+    }
 }

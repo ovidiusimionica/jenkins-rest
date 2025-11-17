@@ -17,9 +17,10 @@
 package com.cdancy.jenkins.rest.features;
 
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
+import com.cdancy.jenkins.rest.parsers.ResponseResult;
 import org.testng.annotations.Test;
 
 import com.cdancy.jenkins.rest.BaseJenkinsApiLiveTest;
@@ -30,37 +31,37 @@ public class SystemApiLiveTest extends BaseJenkinsApiLiveTest {
 
     @Test
     public void testGetSystemInfo() {
-        final SystemInfo version = api().systemInfo();
+        final SystemInfo version = api().systemInfo().getEntity();
         assertNotNull(version);
-        assertNotNull(version.jenkinsVersion());
+        assertNotNull(version.getJenkinsVersion());
     }
 
     @Test
     public void testQuietDown() {
-        RequestStatus success = api().quietDown();
-        assertNotNull(success);
-        assertTrue(success.value());
+        ResponseResult<Void> success = api().quietDown();
+        assertTrue(success.isSuccess());
+        assertNull(success.getEntity());
     }
 
     @Test(dependsOnMethods = "testQuietDown")
     public void testAlreadyQuietDown() {
-        RequestStatus success = api().quietDown();
-        assertNotNull(success);
-        assertTrue(success.value());
+        ResponseResult<Void> success = api().quietDown();
+        assertTrue(success.isSuccess());
+        assertNull(success.getEntity());
     }
 
     @Test(dependsOnMethods = "testAlreadyQuietDown")
     public void testCancelQuietDown() {
-        RequestStatus success = api().cancelQuietDown();
-        assertNotNull(success);
-        assertTrue(success.value());
+        ResponseResult<Void> success = api().cancelQuietDown();
+        assertTrue(success.isSuccess());
+        assertNull(success.getEntity());
     }
 
     @Test(dependsOnMethods = "testCancelQuietDown")
     public void testAlreadyCanceledQuietDown() {
-        RequestStatus success = api().cancelQuietDown();
-        assertNotNull(success);
-        assertTrue(success.value());
+        ResponseResult<Void> success = api().cancelQuietDown();
+        assertTrue(success.isSuccess());
+        assertNull(success.getEntity());
     }
 
     private SystemApi api() {

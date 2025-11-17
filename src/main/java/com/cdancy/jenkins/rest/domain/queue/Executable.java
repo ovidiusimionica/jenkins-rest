@@ -17,22 +17,30 @@
 
 package com.cdancy.jenkins.rest.domain.queue;
 
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.google.auto.value.AutoValue;
+@JsonIgnoreProperties({"_class"})
+public final class Executable {
 
-@AutoValue
-public abstract class Executable {
+    private final Integer number;
+    private final String url;
 
-   public abstract Integer number();
+    @JsonCreator
+    public Executable(
+        @JsonProperty("number") Integer number,
+        @JsonProperty("url") String url
+    ) {
+        this.number = number;
+        this.url = url;
+    }
 
-   public abstract String url();
+    public Integer getNumber() {
+        return number;
+    }
 
-   Executable() {
-   }
-
-   @SerializedNames({ "number", "url" })
-   public static Executable create(Integer number, String url) {
-      return new AutoValue_Executable(number, url);
-   }
+    public String getUrl() {
+        return url;
+    }
 }

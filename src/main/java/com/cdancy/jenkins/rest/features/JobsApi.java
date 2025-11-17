@@ -17,291 +17,690 @@
 
 package com.cdancy.jenkins.rest.features;
 
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.of;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.ofInt;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.ofProgressiveText;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.ofVoid;
+
+import com.cdancy.jenkins.rest.domain.job.BuildInfo;
+import com.cdancy.jenkins.rest.domain.job.JobInfo;
+import com.cdancy.jenkins.rest.domain.job.JobList;
+import com.cdancy.jenkins.rest.domain.job.PipelineNode;
+import com.cdancy.jenkins.rest.domain.job.PipelineNodeLog;
+import com.cdancy.jenkins.rest.domain.job.ProgressiveText;
+import com.cdancy.jenkins.rest.domain.job.Workflow;
+import com.cdancy.jenkins.rest.parsers.ResponseResult;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.Encoded;
+import jakarta.ws.rs.FormParam;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Form;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
-import com.google.gson.JsonObject;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import javax.inject.Named;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-
-import com.cdancy.jenkins.rest.domain.job.*;
-import com.cdancy.jenkins.rest.parsers.*;
-import org.jclouds.Fallbacks;
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.rest.annotations.BinderParam;
-import org.jclouds.rest.annotations.Fallback;
-import org.jclouds.rest.annotations.ParamParser;
-import org.jclouds.rest.annotations.Payload;
-import org.jclouds.rest.annotations.PayloadParam;
-import org.jclouds.rest.annotations.RequestFilters;
-import org.jclouds.rest.annotations.ResponseParser;
-
-import com.cdancy.jenkins.rest.binders.BindMapToForm;
-import com.cdancy.jenkins.rest.domain.common.LongResponse;
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
-import com.cdancy.jenkins.rest.fallbacks.JenkinsFallbacks;
-import com.cdancy.jenkins.rest.filters.JenkinsAuthenticationFilter;
-
-@RequestFilters(JenkinsAuthenticationFilter.class)
 @Path("/")
-public interface JobsApi {
+public interface JobsApi
+{
 
-    @Named("jobs:get-jobs")
-    @Path("{folderPath}api/json")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
+    static final Pattern BUILD_QUEUE_PATTERN = Pattern.compile("^.*/queue/item/(\\d+)/$");
+
+    @Path("api/json")
     @Consumes(MediaType.APPLICATION_JSON)
     @GET
-    JobList jobList(@PathParam("folderPath") @ParamParser(FolderPathParser.class) String folderPath);
+    Response jobListRaw();
 
-    @Named("jobs:job-info")
-    @Path("{optionalFolderPath}job/{name}/api/json")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
+
+    @Path("/{folderPath}/api/json")
     @Consumes(MediaType.APPLICATION_JSON)
     @GET
-    JobInfo jobInfo(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                    @PathParam("name") String jobName);
+    Response jobListInFolderRaw(@PathParam("folderPath") String folderPath);
 
-    @Named("jobs:artifact")
-    @Path("{optionalFolderPath}job/{name}/{number}/api/json")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
+    default ResponseResult<JobList> jobList(String folderPath)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? jobListRaw()
+            : jobListInFolderRaw(appendFolderPrefixIfNeeded((folderPath)));
+        return of(response, JobList.class);
+    }
+
+    // for jobs directly under root
+    @GET
+    @Path("job/{name}/api/json")
+    Response jobInfoRaw(@PathParam("name") String jobName);
+
+    // for jobs in folders
+    @GET
+    @Path("/{folderPath}/job/{name}/api/json")
+    Response jobInfoInFolderRaw(@PathParam("folderPath") String folderPath,
+                                @PathParam("name") String jobName);
+
+
+    // for jobs directly under root
+    default ResponseResult<JobInfo> jobInfo(String folderPath, String jobName)
+    {
+        ResponseResult<JobInfo> response = null;
+        if (folderPath == null || folderPath.isEmpty())
+        {
+            response = of(jobInfoRaw(jobName), JobInfo.class);
+        } else
+        {
+            response = of(jobInfoInFolderRaw(appendFolderPrefixIfNeeded(folderPath), jobName), JobInfo.class);
+        }
+
+        return response;
+    }
+
+    @Path("job/{name}/{number}/api/json")
     @Consumes(MediaType.APPLICATION_JSON)
     @GET
-    BuildInfo buildInfo(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                        @PathParam("name") String jobName,
-                        @PathParam("number") int buildNumber);
+    Response buildInfoRaw(@PathParam("name") String name,
+                          @PathParam("number") int number);
 
-    @Named("jobs:artifact")
-    @Path("{optionalFolderPath}job/{name}/{number}/artifact/{relativeArtifactPath}")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
+
+    @Path("/{folderPath}/job/{name}/{number}/api/json")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @GET
+    Response buildInfoInFolderRaw(@PathParam("folderPath") String folderPath,
+                                  @PathParam("name") String name,
+                                  @PathParam("number") int number);
+
+    default ResponseResult<BuildInfo> buildInfo(String folderPath, String jobName, int buildNumber)
+    {
+        ResponseResult<BuildInfo> response = null;
+        if (folderPath == null || folderPath.isEmpty())
+        {
+            response = of(buildInfoRaw(jobName, buildNumber), BuildInfo.class);
+        } else
+        {
+            response = of(buildInfoInFolderRaw(appendFolderPrefixIfNeeded(folderPath), jobName, buildNumber), BuildInfo.class);
+        }
+
+        return response;
+    }
+
+    @GET
+    @Path("job/{name}/{number}/artifact/{relativeArtifactPath}")
     @Consumes(MediaType.WILDCARD)
-    @GET
-    InputStream artifact(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                         @PathParam("name") String jobName,
-                         @PathParam("number") int buildNumber,
-                         @PathParam("relativeArtifactPath") String relativeArtifactPath);
+    Response artifactRaw(
+        @PathParam("name") String jobName,
+        @PathParam("number") int buildNumber,
+        @PathParam("relativeArtifactPath") String relativeArtifactPath
+    );
 
-    @Named("jobs:create")
-    @Path("{optionalFolderPath}createItem")
-    @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-    @ResponseParser(RequestStatusParser.class)
+    // --- For jobs inside folders ---
+    @GET
+    @Path("/{folderPath}/job/{name}/{number}/artifact/{relativeArtifactPath}")
+    @Consumes(MediaType.WILDCARD)
+    Response artifactInFolderRaw(
+        @PathParam("folderPath") String folderPath,
+        @PathParam("name") String jobName,
+        @PathParam("number") int buildNumber,
+        @PathParam("relativeArtifactPath") String relativeArtifactPath
+    );
+
+    default ResponseResult<InputStream> artifactInFolder(
+        String folderPath,
+        String jobName,
+        int buildNumber,
+        String relativeArtifactPath
+    )
+    {
+        ResponseResult<InputStream> response = null;
+        if (folderPath == null || folderPath.isEmpty())
+        {
+            response = of(artifactRaw(jobName, buildNumber, relativeArtifactPath), InputStream.class);
+        } else
+        {
+            response =
+                of(artifactInFolderRaw(appendFolderPrefixIfNeeded(folderPath), jobName, buildNumber, relativeArtifactPath), InputStream.class);
+        }
+
+        return response;
+    }
+
+    @POST
+    @Path("createItem")
     @Produces(MediaType.APPLICATION_XML)
+    @Consumes(MediaType.APPLICATION_XML)
+    Response createRootJob(
+        @QueryParam("name") String jobName,
+        String configXML
+    );
+
+    @POST
+    @Path("/{folderPath}/createItem")
+    @Produces(MediaType.APPLICATION_XML)
+    @Consumes(MediaType.APPLICATION_XML)
+    Response createJobInFolder(
+        @PathParam("folderPath") String folderPath,
+        @QueryParam("name") String jobName,
+        String configXML
+    );
+
+    default ResponseResult<Void> create(String folderPath, String jobName, String configXML)
+    {
+        ResponseResult<Void> response = null;
+        if (folderPath == null || folderPath.isEmpty())
+        {
+            response = ofVoid(createRootJob(jobName, configXML));
+        } else
+        {
+            response = ofVoid(createJobInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, configXML));
+        }
+
+        return response;
+    }
+
+    private static String appendFolderPrefixIfNeeded(String folderPath)
+    {
+        String[] split = folderPath.split("/");
+        StringBuilder path = new StringBuilder();
+        boolean skipAppendNext = false;
+        for (int index = 0; index < split.length; index++)
+        {
+            var currentSegment = split[index];
+            if (currentSegment.isEmpty()) {
+                continue;
+            }
+            if ("job".equals(currentSegment))
+            {
+                skipAppendNext = true;
+            } else if (!skipAppendNext)
+            {
+                currentSegment = "job/" + currentSegment;
+            } else
+            {
+                skipAppendNext = false;
+            }
+
+            if (index != split.length - 1)
+            {
+                currentSegment += "/";
+            }
+
+            path.append(currentSegment);
+        }
+
+        if (path.isEmpty())
+        {
+            return "job/" + folderPath;
+        } else
+        {
+            return path.toString();
+        }
+    }
+
+    @GET
+    @Path("job/{name}/config.xml")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response getRootJobConfig(@PathParam("name") String jobName);
+
+    @GET
+    @Path("/{folderPath}/job/{name}/config.xml")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response getJobConfigInFolder(@PathParam("folderPath") String folderPath, @PathParam("name") String jobName);
+
+    default ResponseResult<String> config(String folderPath, String jobName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? getRootJobConfig(jobName)
+            : getJobConfigInFolder(appendFolderPrefixIfNeeded(folderPath), jobName);
+        return of(response, String.class);
+    }
+
+    @POST
+    @Path("job/{name}/config.xml")
+    @Consumes(MediaType.APPLICATION_XML)
+    @Produces(MediaType.APPLICATION_XML)
+    Response updateRootJobConfig(@PathParam("name") String jobName, String configXML);
+
+    @POST
+    @Path("/{folderPath}/job/{name}/config.xml")
+    @Consumes(MediaType.APPLICATION_XML)
+    @Produces(MediaType.APPLICATION_XML)
+    Response updateJobConfigInFolder(@PathParam("folderPath") String folderPath, @PathParam("name") String jobName,
+                                     String configXML);
+
+    default ResponseResult<Void> config(String folderPath, String jobName, String configXML)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? updateRootJobConfig(jobName, configXML)
+            : updateJobConfigInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, configXML);
+        return ofVoid(response);
+    }
+
+    @GET
+    @Path("job/{name}/description")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response getRootJobDescription(@PathParam("name") String jobName);
+
+    @GET
+    @Path("/{folderPath}/job/{name}/description")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response getJobDescriptionInFolder(@PathParam("folderPath") String folderPath, @PathParam("name") String jobName);
+
+    default ResponseResult<String> description(String folderPath, String jobName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? getRootJobDescription(jobName)
+            : getJobDescriptionInFolder(appendFolderPrefixIfNeeded(folderPath), jobName);
+        return of(response, String.class);
+    }
+
+    @POST
+    @Path("job/{name}/description")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Response setRootJobDescription(@PathParam("name") String jobName, @FormParam("description") String description);
+
+    @POST
+    @Path("/{folderPath}/job/{name}/description")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Response setJobDescriptionInFolder(@PathParam("folderPath") String folderPath,
+                                       @PathParam("name") String jobName,
+                                       @FormParam("description") String description);
+
+    default ResponseResult<Void> description(String folderPath, String jobName, String description)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? setRootJobDescription(jobName, description)
+            : setJobDescriptionInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, description);
+        return ofVoid(response);
+    }
+
+
+    @POST
+    @Path("job/{name}/doDelete")
+    @Consumes(MediaType.TEXT_HTML)
+    Response deleteRootJob(@PathParam("name") String jobName);
+
+    @POST
+    @Path("/{folderPath}/job/{name}/doDelete")
+    @Consumes(MediaType.TEXT_HTML)
+    Response deleteJobInFolder(@PathParam("folderPath") String folderPath, @PathParam("name") String jobName);
+
+    default ResponseResult<Void> delete(String folderPath, String jobName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? deleteRootJob(jobName)
+            : deleteJobInFolder(appendFolderPrefixIfNeeded(folderPath), jobName);
+        return ofVoid(response);
+    }
+
+    @POST
+    @Path("job/{name}/enable")
+    @Consumes(MediaType.TEXT_HTML)
+    Response enableRootJob(@PathParam("name") String jobName);
+
+    @POST
+    @Path("/{folderPath}/job/{name}/enable")
+    @Consumes(MediaType.TEXT_HTML)
+    Response enableJobInFolder(@PathParam("folderPath") String folderPath, @PathParam("name") String jobName);
+
+    default ResponseResult<Void> enable(String folderPath, String jobName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? enableRootJob(jobName)
+            : enableJobInFolder(appendFolderPrefixIfNeeded(folderPath), jobName);
+        return ofVoid(response);
+    }
+
+    @POST
+    @Path("job/{name}/disable")
+    @Consumes(MediaType.TEXT_HTML)
+    Response disableRootJob(@PathParam("name") String name);
+
+    @POST
+    @Path("/{folderPath}/job/{name}/disable")
+    @Consumes(MediaType.TEXT_HTML)
+    Response disableJobInFolder(@PathParam("folderPath") String folderPath, @PathParam("name") String name);
+
+    default ResponseResult<Void> disable(String folderPath, String jobName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? disableRootJob(jobName)
+            : disableJobInFolder(appendFolderPrefixIfNeeded(folderPath), jobName);
+        return ofVoid(response);
+    }
+
+    @POST
+    @Path("job/{name}/build")
     @Consumes(MediaType.WILDCARD)
-    @Payload("{configXML}")
+    Response buildRootJob(@PathParam("name") String jobName);
+
     @POST
-    RequestStatus create(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                         @QueryParam("name") String jobName,
-                         @PayloadParam(value = "configXML") String configXML);
+    @Path("/{folderPath}/job/{name}/build")
+    @Consumes(MediaType.WILDCARD)
+    Response buildJobInFolder(@PathParam("folderPath") String folderPath, @PathParam("name") String jobName);
 
-    @Named("jobs:get-config")
-    @Path("{optionalFolderPath}job/{name}/config.xml")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.TEXT_PLAIN)
-    @GET
-    String config(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                  @PathParam("name") String jobName);
+    default ResponseResult<Long> build(String folderPath, String jobName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? buildRootJob(jobName)
+            : buildJobInFolder(appendFolderPrefixIfNeeded(folderPath), jobName);
 
-    @Named("jobs:update-config")
-    @Path("{optionalFolderPath}job/{name}/config.xml")
-    @Fallback(Fallbacks.FalseOnNotFoundOr404.class)
-    @Produces(MediaType.APPLICATION_XML + ";charset=UTF-8")
-    @Consumes(MediaType.TEXT_HTML)
-    @Payload("{configXML}")
+        return extractBuildNumberResponse(response);
+    }
+
+    private static ResponseResult<Long> extractBuildNumberResponse(Response response)
+    {
+        Long buildNumber = null;
+        String error = null;
+        String url = response.getHeaderString("Location");
+        if (url != null)
+        {
+            Matcher matcher = BUILD_QUEUE_PATTERN.matcher(url);
+            if (matcher.find() && matcher.groupCount() == 1)
+            {
+                buildNumber = Long.valueOf(matcher.group(1));
+            }
+        } else
+        {
+            error = "No queue item Location header could be found despite getting a valid HTTP response.";
+        }
+
+        return ResponseResult.of(response, buildNumber, error);
+    }
+
+
     @POST
-    boolean config(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                   @PathParam("name") String jobName,
-                   @PayloadParam(value = "configXML") String configXML);
+    @Path("job/{name}/buildWithParameters")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Response buildRootJobWithParameters(@PathParam("name") String jobName, Form params);
 
-    @Named("jobs:get-description")
-    @Path("{optionalFolderPath}job/{name}/description")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.TEXT_PLAIN)
-    @GET
-    String description(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                       @PathParam("name") String jobName);
-
-    @Named("jobs:set-description")
-    @Path("{optionalFolderPath}job/{name}/description")
-    @Fallback(Fallbacks.FalseOnNotFoundOr404.class)
-    @Consumes(MediaType.TEXT_HTML)
     @POST
-    boolean description(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                        @PathParam("name") String jobName,
-                        @FormParam("description") String description);
+    @Path("/{folderPath}/job/{name}/buildWithParameters")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Response buildJobWithParametersInFolder(@PathParam("folderPath") String folderPath,
+                                            @PathParam("name") String jobName,
+                                            Form params);
 
-    @Named("jobs:delete")
-    @Path("{optionalFolderPath}job/{name}/doDelete")
-    @Consumes(MediaType.TEXT_HTML)
-    @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-    @ResponseParser(RequestStatusParser.class)
+    default ResponseResult<Long> buildWithParameters(String folderPath,
+                                                     String jobName,
+                                                     Map<String, List<String>> params)
+    {
+        Form form = new Form();
+        if (params != null)
+        {
+            params.forEach((k, v) -> {
+                if (v != null && !v.isEmpty())
+                {
+                    v.forEach(val -> form.param(k, val));
+                } else
+                {
+                    form.param(k, "");
+                }
+            });
+        }
+
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? buildRootJobWithParameters(jobName, form)
+            : buildJobWithParametersInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, form);
+        return extractBuildNumberResponse(response);
+    }
+
     @POST
-    RequestStatus delete(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                         @PathParam("name") String jobName);
-
-    @Named("jobs:enable")
-    @Path("{optionalFolderPath}job/{name}/enable")
-    @Fallback(Fallbacks.FalseOnNotFoundOr404.class)
-    @Consumes(MediaType.TEXT_HTML)
-    @POST
-    boolean enable(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                   @PathParam("name") String jobName);
-
-    @Named("jobs:disable")
-    @Path("{optionalFolderPath}job/{name}/disable")
-    @Fallback(Fallbacks.FalseOnNotFoundOr404.class)
-    @Consumes(MediaType.TEXT_HTML)
-    @POST
-    boolean disable(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                    @PathParam("name") String jobName);
-
-    @Named("jobs:build")
-    @Path("{optionalFolderPath}job/{name}/build")
-    @Fallback(JenkinsFallbacks.LongResponseOnError.class)
-    @ResponseParser(LocationToQueueId.class)
-    @Consumes("application/unknown")
-    @POST
-    LongResponse build(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                  @PathParam("name") String jobName);
-
-    @Named("jobs:stop-build")
-    @Path("{optionalFolderPath}job/{name}/{number}/stop")
-    @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-    @ResponseParser(RequestStatusParser.class)
+    @Path("job/{name}/{number}/stop")
     @Consumes(MediaType.APPLICATION_JSON)
-    @POST
-    RequestStatus stop(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                            @PathParam("name") String jobName,
-                            @PathParam("number") int buildNumber);
+    Response stopRootJob(@PathParam("name") String jobName, @PathParam("number") int buildNumber);
 
-    @Named("jobs:term-build")
-    @Path("{optionalFolderPath}job/{name}/{number}/term")
-    @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-    @ResponseParser(RequestStatusParser.class)
+    @POST
+    @Path("/{folderPath}/job/{name}/{number}/stop")
     @Consumes(MediaType.APPLICATION_JSON)
-    @POST
-    RequestStatus term(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                            @PathParam("name") String jobName,
-                            @PathParam("number") int buildNumber);
+    Response stopJobInFolder(@PathParam("folderPath") String folderPath,
+                             @PathParam("name") String jobName,
+                             @PathParam("number") int buildNumber);
 
-    @Named("jobs:kill-build")
-    @Path("{optionalFolderPath}job/{name}/{number}/kill")
-    @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-    @ResponseParser(RequestStatusParser.class)
+    default ResponseResult<Void> stop(String folderPath, String jobName, int buildNumber)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? stopRootJob(jobName, buildNumber)
+            : stopJobInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, buildNumber);
+        return ofVoid(response);
+    }
+
+    @POST
+    @Path("job/{name}/{number}/term")
     @Consumes(MediaType.APPLICATION_JSON)
+    Response termRootJob(@PathParam("name") String jobName, @PathParam("number") int buildNumber);
+
     @POST
-    RequestStatus kill(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                            @PathParam("name") String jobName,
-                            @PathParam("number") int buildNumber);
+    @Path("/{folderPath}/job/{name}/{number}/term")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response termJobInFolder(@PathParam("folderPath") String folderPath,
+                             @PathParam("name") String jobName,
+                             @PathParam("number") int buildNumber);
 
-    @Named("jobs:build-with-params")
-    @Path("{optionalFolderPath}job/{name}/buildWithParameters")
-    @Fallback(JenkinsFallbacks.LongResponseOnError.class)
-    @ResponseParser(LocationToQueueId.class)
-    @Consumes("application/unknown")
+    default ResponseResult<Void> term(String folderPath, String jobName, int buildNumber)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? termRootJob(jobName, buildNumber)
+            : termJobInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, buildNumber);
+        return ofVoid(response);
+    }
+
     @POST
-    LongResponse buildWithParameters(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                                @PathParam("name") String jobName,
-                                @Nullable @BinderParam(BindMapToForm.class) Map<String, List<String>> properties);
+    @Path("job/{name}/{number}/kill")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response killRootJob(@PathParam("name") String jobName, @PathParam("number") int buildNumber);
 
-    @Named("jobs:last-build-number")
-    @Path("{optionalFolderPath}job/{name}/lastBuild/buildNumber")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @ResponseParser(BuildNumberToInteger.class)
-    @Consumes(MediaType.TEXT_PLAIN)
-    @GET
-    Integer lastBuildNumber(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                            @PathParam("name") String jobName);
-
-    @Named("jobs:last-build-timestamp")
-    @Path("{optionalFolderPath}job/{name}/lastBuild/buildTimestamp")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.TEXT_PLAIN)
-    @GET
-    String lastBuildTimestamp(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                              @PathParam("name") String jobName);
-
-    @Named("jobs:progressive-text")
-    @Path("{optionalFolderPath}job/{name}/lastBuild/logText/progressiveText")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @ResponseParser(OutputToProgressiveText.class)
-    @Consumes(MediaType.TEXT_PLAIN)
-    @GET
-    ProgressiveText progressiveText(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                                    @PathParam("name") String jobName,
-                                    @QueryParam("start") int start);
-
-    @Named("jobs:progressive-text")
-    @Path("{optionalFolderPath}job/{name}/{number}/logText/progressiveText")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @ResponseParser(OutputToProgressiveText.class)
-    @Consumes(MediaType.TEXT_PLAIN)
-    @GET
-    ProgressiveText progressiveText(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                                    @PathParam("name") String jobName,
-                                    @PathParam("number") int buildNumber,
-                                    @QueryParam("start") int start);
-
-    @Named("jobs:rename")
-    @Path("{optionalFolderPath}job/{name}/doRename")
-    @Fallback(Fallbacks.FalseOnNotFoundOr404.class)
-    @Consumes(MediaType.TEXT_HTML)
     @POST
-    boolean rename(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                   @PathParam("name") String jobName,
-                   @QueryParam("newName") String newName);
+    @Path("/{folderPath}/job/{name}/{number}/kill")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response killJobInFolder(@PathParam("folderPath") String folderPath,
+                             @PathParam("name") String jobName,
+                             @PathParam("number") int buildNumber);
+
+    default ResponseResult<Void> kill(String folderPath, String jobName, int buildNumber)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? killRootJob(jobName, buildNumber)
+            : killJobInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, buildNumber);
+        return ofVoid(response);
+    }
+
+    @GET
+    @Path("job/{name}/lastBuild/buildNumber")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response lastRootBuildNumber(@PathParam("name") String jobName);
+
+    @GET
+    @Path("/{folderPath}/job/{name}/lastBuild/buildNumber")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response lastBuildNumberInFolder(@PathParam("folderPath") String folderPath,
+                                     @PathParam("name") String jobName);
+
+    default ResponseResult<Integer> lastBuildNumber(String folderPath, String jobName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? lastRootBuildNumber(jobName)
+            : lastBuildNumberInFolder(appendFolderPrefixIfNeeded(folderPath), jobName);
+
+        return ofInt(response);
+    }
+
+    @GET
+    @Path("job/{name}/lastBuild/buildTimestamp")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response lastRootBuildTimestamp(@PathParam("name") String jobName);
+
+    @GET
+    @Path("/{folderPath}/job/{name}/lastBuild/buildTimestamp")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response lastBuildTimestampInFolder(@PathParam("folderPath") String folderPath,
+                                        @PathParam("name") String jobName);
+
+    default ResponseResult<String> lastBuildTimestamp(String folderPath, String jobName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? lastRootBuildTimestamp(jobName)
+            : lastBuildTimestampInFolder(appendFolderPrefixIfNeeded(folderPath), jobName);
+        return of(response, String.class);
+    }
+
+    @GET
+    @Path("job/{name}/lastBuild/logText/progressiveText")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response progressiveRootText(@PathParam("name") String jobName, @QueryParam("start") int start);
+
+    @GET
+    @Path("/{folderPath}/job/{name}/lastBuild/logText/progressiveText")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response progressiveTextInFolder(@PathParam("folderPath") String folderPath,
+                                     @PathParam("name") String jobName,
+                                     @QueryParam("start") int start);
+
+    default ResponseResult<ProgressiveText> progressiveText(String folderPath, String jobName, int start)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? progressiveRootText(jobName, start)
+            : progressiveTextInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, start);
+        return ofProgressiveText(response);
+    }
+
+    @GET
+    @Path("job/{name}/{number}/logText/progressiveText")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response progressiveRootBuildText(@PathParam("name") String jobName,
+                                      @PathParam("number") int buildNumber,
+                                      @QueryParam("start") int start);
+
+    @GET
+    @Path("/{folderPath}/job/{name}/{number}/logText/progressiveText")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response progressiveBuildTextInFolder(@PathParam("folderPath") String folderPath,
+                                          @PathParam("name") String jobName,
+                                          @PathParam("number") int buildNumber,
+                                          @QueryParam("start") int start);
+
+    default ResponseResult<ProgressiveText> progressiveText(String folderPath,
+                                                            String jobName,
+                                                            int buildNumber,
+                                                            int start)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? progressiveRootBuildText(jobName, buildNumber, start)
+            : progressiveBuildTextInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, buildNumber, start);
+        return ofProgressiveText(response);
+    }
+
+    @POST
+    @Path("job/{name}/doRename")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Response renameRootJob(@PathParam("name") String jobName, @QueryParam("newName") String newName);
+
+    @POST
+    @Path("/{folderPath}/job/{name}/doRename")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Response renameJobInFolder(@PathParam("folderPath") String folderPath,
+                               @PathParam("name") String jobName,
+                               @QueryParam("newName") String newName);
+
+    default ResponseResult<Void> rename(String folderPath, String jobName, String newName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? renameRootJob(jobName, newName)
+            : renameJobInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, newName);
+        return ofVoid(response);
+    }
 
     // below four apis are for "pipeline-stage-view-plugin",
     // see https://github.com/jenkinsci/pipeline-stage-view-plugin/tree/master/rest-api
-    @Named("jobs:run-history")
-    @Path("{optionalFolderPath}job/{name}/wfapi/runs")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.APPLICATION_JSON)
     @GET
-    List<Workflow> runHistory(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-                              @PathParam("name") String jobName);
+    @Path("job/{name}/wfapi/runs")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response rootRunHistory(@PathParam("name") String jobName);
 
-    @Named("jobs:workflow")
-    @Path("{optionalFolderPath}job/{name}/{number}/wfapi/describe")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.APPLICATION_JSON)
     @GET
-    Workflow workflow(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-        @PathParam("name") String jobName,
-        @PathParam("number") int buildNumber);
+    @Path("/{folderPath}/job/{name}/wfapi/runs")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response runHistoryInFolder(@PathParam("folderPath") String folderPath,
+                                @PathParam("name") String jobName);
 
-    @Named("jobs:pipeline-node")
-    @Path("{optionalFolderPath}job/{name}/{number}/execution/node/{nodeId}/wfapi/describe")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @GET
-    PipelineNode pipelineNode(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-        @PathParam("name") String jobName,
-        @PathParam("number") int buildNumber, @PathParam("nodeId") int nodeId);
+    default ResponseResult<List<Workflow>> runHistory(String folderPath, String jobName)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? rootRunHistory(jobName)
+            : runHistoryInFolder(appendFolderPrefixIfNeeded(folderPath), jobName);
+        return of(response, (Class<List<Workflow>>) (Class<?>) List.class);
+    }
 
-    @Named("jobs:pipeline-node-log")
-    @Path("{optionalFolderPath}job/{name}/{number}/execution/node/{nodeId}/wfapi/log")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.APPLICATION_JSON)
     @GET
-    PipelineNodeLog pipelineNodeLog(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
+    @Path("job/{name}/{number}/wfapi/describe")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response rootWorkflow(@PathParam("name") String jobName, @PathParam("number") int buildNumber);
+
+    @GET
+    @Path("/{folderPath}/job/{name}/{number}/wfapi/describe")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response workflowInFolder(@PathParam("folderPath") String folderPath,
                               @PathParam("name") String jobName,
-                              @PathParam("number") int buildNumber, @PathParam("nodeId") int nodeId);
+                              @PathParam("number") int buildNumber);
 
-    @Named("jobs:testReport")
-    @Path("{optionalFolderPath}job/{name}/{number}/testReport/api/json")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.APPLICATION_JSON)
+    default ResponseResult<Workflow> workflow(String folderPath, String jobName, int buildNumber)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? rootWorkflow(jobName, buildNumber)
+            : workflowInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, buildNumber);
+        return of(response, Workflow.class);
+    }
+
+
     @GET
-    JsonObject testReport(@Nullable @PathParam("optionalFolderPath") @ParamParser(OptionalFolderPathParser.class) String optionalFolderPath,
-        @PathParam("name") String jobName,
-        @PathParam("number") int buildNumber);
+    @Path("job/{name}/{number}/execution/node/{nodeId}/wfapi/describe")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response rootPipelineNode(@PathParam("name") String jobName,
+                              @PathParam("number") int buildNumber,
+                              @PathParam("nodeId") int nodeId);
 
+    @GET
+    @Path("/{folderPath}/job/{name}/{number}/execution/node/{nodeId}/wfapi/describe")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response pipelineNodeInFolder(@PathParam("folderPath") String folderPath,
+                                  @PathParam("name") String jobName,
+                                  @PathParam("number") int buildNumber,
+                                  @PathParam("nodeId") int nodeId);
+
+    default ResponseResult<PipelineNode> pipelineNode(String folderPath, String jobName, int buildNumber, int nodeId)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? rootPipelineNode(jobName, buildNumber, nodeId)
+            : pipelineNodeInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, buildNumber, nodeId);
+        return of(response, PipelineNode.class);
+    }
+
+    @GET
+    @Path("job/{name}/{number}/execution/node/{nodeId}/wfapi/log")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response rootPipelineNodeLog(@PathParam("name") String jobName,
+                                 @PathParam("number") int buildNumber,
+                                 @PathParam("nodeId") int nodeId);
+
+    @GET
+    @Path("/{folderPath}/job/{name}/{number}/execution/node/{nodeId}/wfapi/log")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response pipelineNodeLogInFolder(@PathParam("folderPath") String folderPath,
+                                     @PathParam("name") String jobName,
+                                     @PathParam("number") int buildNumber,
+                                     @PathParam("nodeId") int nodeId);
+
+    default ResponseResult<PipelineNodeLog> pipelineNodeLog(String folderPath,
+                                                            String jobName,
+                                                            int buildNumber,
+                                                            int nodeId)
+    {
+        Response response = (folderPath == null || folderPath.isEmpty())
+            ? rootPipelineNodeLog(jobName, buildNumber, nodeId)
+            : pipelineNodeLogInFolder(appendFolderPrefixIfNeeded(folderPath), jobName, buildNumber, nodeId);
+        return of(response, PipelineNodeLog.class);
+    }
 }

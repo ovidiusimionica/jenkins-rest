@@ -14,61 +14,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.cdancy.jenkins.rest.features;
 
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
+import com.cdancy.jenkins.rest.BaseJenkinsApiLiveTest;
+import com.cdancy.jenkins.rest.domain.queue.QueueItem;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.cdancy.jenkins.rest.BaseJenkinsApiLiveTest;
-import com.cdancy.jenkins.rest.domain.common.LongResponse;
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
-import com.cdancy.jenkins.rest.domain.queue.QueueItem;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 @Test(groups = "live", testName = "QueueApiLiveTest", singleThreaded = true)
-public class QueueApiLiveTest extends BaseJenkinsApiLiveTest {
+public class QueueApiLiveTest extends BaseJenkinsApiLiveTest
+{
 
     @BeforeClass
-    public void init() {
+    public void init()
+    {
         String config = payloadFromResource("/freestyle-project-sleep-task.xml");
-        RequestStatus success = api.jobsApi().create(null,"QueueTest", config);
-        assertTrue(success.value());
+        var success = api.jobsApi().create(null, "QueueTest", config);
+        assertTrue(success.isSuccess());
 
         config = payloadFromResource("/freestyle-project.xml");
-        success = api.jobsApi().create(null,"QueueTestSingleParam", config);
-        assertTrue(success.value());
+        success = api.jobsApi().create(null, "QueueTestSingleParam", config);
+        assertTrue(success.isSuccess());
 
         config = payloadFromResource("/freestyle-project-sleep-task-multiple-params.xml");
-        success = api.jobsApi().create(null,"QueueTestMultipleParams", config);
-        assertTrue(success.value());
+        success = api.jobsApi().create(null, "QueueTestMultipleParams", config);
+        assertTrue(success.isSuccess());
     }
 
     @Test
-    public void testGetQueue() {
-        LongResponse job1 = api.jobsApi().build(null, "QueueTest");
-        assertNotNull(job1);
-        assertEquals(job1.errors().size(), 0);
-        LongResponse job2 = api.jobsApi().build(null, "QueueTest");
-        assertNotNull(job2);
-        assertEquals(job2.errors().size(), 0);
-        List<QueueItem> queueItems = api().queue();
-        assertTrue(queueItems.size() > 0);
+    public void testGetQueue()
+    {
+        var job1Response = api.jobsApi().build(null, "QueueTest");
+        assertTrue(job1Response.isSuccess());
+        var job2Response = api.jobsApi().build(null, "QueueTest");
+        assertTrue(job2Response.isSuccess());
+        List<QueueItem> queueItems = api().queue().getEntity();
+        assertFalse(queueItems.isEmpty());
         boolean foundLastKickedJob = false;
-        for (QueueItem item : queueItems) {
-            if (item.id() == job2.value()) {
+        for (QueueItem item : queueItems)
+        {
+            if (item.getId() == job2Response.getEntity())
+            {
                 foundLastKickedJob = true;
                 break;
             }
@@ -77,165 +76,165 @@ public class QueueApiLiveTest extends BaseJenkinsApiLiveTest {
     }
 
     @Test
-    public void testGetPendingQueueItem() {
-        LongResponse job1 = api.jobsApi().build(null,"QueueTest");
-        assertNotNull(job1);
-        assertEquals(job1.errors().size(), 0);
-        LongResponse job2 = api.jobsApi().build(null,"QueueTest");
-        assertNotNull(job2);
-        assertEquals(job2.errors().size(), 0);
+    public void testGetPendingQueueItem()
+    {
+        var job1 = api.jobsApi().build(null, "QueueTest");
+        var job2 = api.jobsApi().build(null, "QueueTest");
 
         // job2 is queue after job1, so while job1 runs, job2 is pending in the queue
-        QueueItem queueItem = api().queueItem(job2.value());
-        assertFalse(queueItem.cancelled());
-        assertNotNull(queueItem.why());
-        assertNull(queueItem.executable());
+        var queueItemResponse = api().queueItem(job2.getEntity());
+        assertTrue(queueItemResponse.isSuccess());
+        var queueItem = queueItemResponse.getEntity();
+        assertFalse(queueItem.isCancelled());
+        assertNotNull(queueItem.getWhy());
+        assertNull(queueItem.getExecutable());
     }
 
     @Test
-    public void testGetRunningQueueItem() throws InterruptedException {
-        LongResponse job1 = api.jobsApi().build(null,"QueueTest");
-        assertNotNull(job1);
-        assertEquals(job1.errors().size(), 0);
-        LongResponse job2 = api.jobsApi().build(null,"QueueTest");
-        assertNotNull(job2);
-        assertEquals(job2.errors().size(), 0);
+    public void testGetRunningQueueItem() throws InterruptedException
+    {
+        var job1 = api.jobsApi().build(null, "QueueTest");
+        var job2 = api.jobsApi().build(null, "QueueTest");
 
         // job1 runs first, so we get its queueItem
-        QueueItem queueItem = getRunningQueueItem(job1.value());
+        QueueItem queueItem = getRunningQueueItem(job1.getEntity());
 
         // If null, it means the queueItem has been cancelled, which would not be normal in this test
         assertNotNull(queueItem);
-        assertFalse(queueItem.cancelled());
+        assertFalse(queueItem.isCancelled());
 
         //  We exepect this build to run, consequently:
         //  * the why field should now be null
         //  * the executable field should NOT be null
         //  * the build number should be set to an integer
         //  * the url for the build should be set to a string
-        assertNull(queueItem.why());
-        assertNotNull(queueItem.executable());
+        assertNull(queueItem.getWhy());
+        assertNotNull(queueItem.getExecutable());
     }
 
     @Test
-    public void testQueueItemSingleParameters() throws InterruptedException {
-        Map<String, List<String>> params = new HashMap<>();
-        params.put("SomeKey", Lists.newArrayList("SomeVeryNewValue1"));
-        LongResponse job1 = api.jobsApi().buildWithParameters(null,"QueueTestSingleParam", params);
-        assertNotNull(job1);
-        assertTrue(job1.value() > 0);
-        assertEquals(job1.errors().size(), 0);
+    public void testQueueItemSingleParameters() throws InterruptedException
+    {
+        var job1Response = api.jobsApi().buildWithParameters(null, "QueueTestSingleParam",
+            Map.of(
+                "SomeKey", List.of("SomeVeryNewValue1")
+            ));
+        assertTrue(job1Response.isSuccess());
+        assertTrue(job1Response.getEntity() > 0);
 
         // Jenkins will reject two consecutive build requests when the build parameter values are the same
         // So we must set some different parameter values
-        params = new HashMap<>();
-        params.put("SomeKey", Lists.newArrayList("SomeVeryNewValue2"));
-        LongResponse job2 = api.jobsApi().buildWithParameters(null,"QueueTestSingleParam", params);
-        assertNotNull(job2);
-        assertTrue(job2.value() > 0);
-        assertEquals(job2.errors().size(), 0);
+        var job2Response = api.jobsApi().buildWithParameters(null, "QueueTestSingleParam",
+            Map.of(
+                "SomeKey", List.of("SomeVeryNewValue2")
+            ));
+        assertTrue(job2Response.isSuccess());
+        assertTrue(job2Response.getEntity() > 0);
 
-        QueueItem queueItem = getRunningQueueItem(job1.value());
+
+        QueueItem queueItem = getRunningQueueItem(job1Response.getEntity());
         assertNotNull(queueItem);
-        assertFalse(queueItem.cancelled());
+        assertFalse(queueItem.isCancelled());
 
-        Map <String, String> map = Maps.newHashMap();
-        map.put("SomeKey", "SomeVeryNewValue1");
-        assertEquals(queueItem.params(), map);
+        assertEquals(queueItem.getParams(), Map.of("SomeKey", "SomeVeryNewValue1"));
     }
 
     @Test
-    public void testQueueItemMultipleParameters() throws InterruptedException {
-        Map<String, List<String>> params = new HashMap<>();
-        params.put("SomeKey1", Lists.newArrayList("SomeVeryNewValue1"));
-        LongResponse job1 = api.jobsApi().buildWithParameters(null, "QueueTestMultipleParams",params);
-        assertNotNull(job1);
-        assertTrue(job1.value() > 0);
-        assertEquals(job1.errors().size(), 0);
+    public void testQueueItemMultipleParameters() throws InterruptedException
+    {
+        var job1Response = api.jobsApi().buildWithParameters(null, "QueueTestMultipleParams",
+            Map.of(
+                "SomeKey1", List.of("SomeVeryNewValue1")
+            )
+        );
+        assertTrue(job1Response.isSuccess());
+        assertTrue(job1Response.getEntity() > 0);
 
         // Jenkins will reject two consecutive build requests when the build parameter values are the same
         // So we must set some different parameter values
-        params = new HashMap<>();
-        params.put("SomeKey1", Lists.newArrayList("SomeVeryNewValue2"));
-        LongResponse job2 = api.jobsApi().buildWithParameters(null, "QueueTestMultipleParams", params);
-        assertNotNull(job2);
-        assertTrue(job2.value() > 0);
-        assertEquals(job2.errors().size(), 0);
+        var job2Response = api.jobsApi().buildWithParameters(null, "QueueTestMultipleParams",
+            Map.of(
+                "SomeKey1", List.of("SomeVeryNewValue2")
+            )
+        );
+        assertTrue(job2Response.isSuccess());
+        assertTrue(job2Response.getEntity() > 0);
 
-        QueueItem queueItem = getRunningQueueItem(job1.value());
+
+        QueueItem queueItem = getRunningQueueItem(job1Response.getEntity());
         assertNotNull(queueItem);
-        assertFalse(queueItem.cancelled());
+        assertFalse(queueItem.isCancelled());
 
-        Map <String, String> map = Maps.newHashMap();
-        map.put("SomeKey1", "SomeVeryNewValue1");
-        map.put("SomeKey2", "SomeValue2");
-        map.put("SomeKey3", "SomeValue3");
-        assertEquals(queueItem.params(), map);
+        assertEquals(queueItem.getParams(), Map.of(
+            "SomeKey1", "SomeVeryNewValue1",
+            "SomeKey2", "SomeValue2",
+            "SomeKey3", "SomeValue3"
+        ));
     }
 
     @Test
-    public void testQueueItemEmptyParameterValue() throws InterruptedException {
-        Map<String, List<String>> params = new HashMap<>();
-        params.put("SomeKey1", Lists.newArrayList(""));
-        LongResponse job1 = api.jobsApi().buildWithParameters(null, "QueueTestMultipleParams",params);
-        assertNotNull(job1);
-        assertTrue(job1.value() > 0);
-        assertEquals(job1.errors().size(), 0);
+    public void testQueueItemEmptyParameterValue() throws InterruptedException
+    {
+        var job1Response = api.jobsApi().buildWithParameters(null, "QueueTestMultipleParams",
+            Map.of(
+                "SomeKey1", List.of("")
+            ));
+        assertTrue(job1Response.isSuccess());
+        assertTrue(job1Response.getEntity() > 0);
 
-        QueueItem queueItem = getRunningQueueItem(job1.value());
+
+        QueueItem queueItem = getRunningQueueItem(job1Response.getEntity());
         assertNotNull(queueItem);
 
-        Map <String, String> map = Maps.newHashMap();
-        map.put("SomeKey1", "");
-        map.put("SomeKey2", "SomeValue2");
-        map.put("SomeKey3", "SomeValue3");
-        assertEquals(queueItem.params(), map);
+        assertEquals(queueItem.getParams(), Map.of(
+            "SomeKey1", "",
+            "SomeKey2", "SomeValue2",
+            "SomeKey3", "SomeValue3"
+        ));
     }
 
     @Test
-    public void testGetCancelledQueueItem() {
-        LongResponse job1 = api.jobsApi().build(null,"QueueTest");
-        assertNotNull(job1);
-        assertEquals(job1.errors().size(), 0);
-        LongResponse job2 = api.jobsApi().build(null, "QueueTest");
-        assertNotNull(job2);
-        assertEquals(job2.errors().size(), 0);
+    public void testGetCancelledQueueItem()
+    {
+        var job1 = api.jobsApi().build(null, "QueueTest");
+        var job2 = api.jobsApi().build(null, "QueueTest");
 
-        RequestStatus success = api().cancel(job2.value());
-        assertNotNull(success);
-        assertTrue(success.value());
-        assertTrue(success.errors().isEmpty());
+        var success = api().cancel(job2.getEntity());
+        assertTrue(success.isSuccess());
 
-        QueueItem queueItem = api().queueItem(job2.value());
-        assertTrue(queueItem.cancelled());
-        assertNull(queueItem.why());
-        assertNull(queueItem.executable());
+
+        var queueItemResponse = api().queueItem(job2.getEntity());
+        assertTrue(queueItemResponse.isSuccess());
+        var queueItem = queueItemResponse.getEntity();
+        assertTrue(queueItem.isCancelled());
+        assertNull(queueItem.getWhy());
+        assertNull(queueItem.getExecutable());
     }
 
     @Test
-    public void testCancelNonExistentQueueItem() {
-        RequestStatus success = api().cancel(123456789);
-        assertNotNull(success);
-        assertTrue(success.value());
-        assertTrue(success.errors().isEmpty());
+    public void testCancelNonExistentQueueItem()
+    {
+        var success = api().cancel(123456789);
+        assertFalse(success.isSuccess());
+        assertEquals(success.getStatus(), NOT_FOUND.getStatusCode());
+        assertNotNull(success.getError());
     }
 
     @AfterClass
-    public void finish() {
-        RequestStatus success = api.jobsApi().delete(null,"QueueTest");
-        assertNotNull(success);
-        assertTrue(success.value());
+    public void finish()
+    {
+        var success = api.jobsApi().delete(null, "QueueTest");
+        assertTrue(success.isSuccess());
 
-        success = api.jobsApi().delete(null,"QueueTestSingleParam");
-        assertNotNull(success);
-        assertTrue(success.value());
+        success = api.jobsApi().delete(null, "QueueTestSingleParam");
+        assertTrue(success.isSuccess());
 
-        success = api.jobsApi().delete(null,"QueueTestMultipleParams");
-        assertNotNull(success);
-        assertTrue(success.value());
+        success = api.jobsApi().delete(null, "QueueTestMultipleParams");
+        assertTrue(success.isSuccess());
     }
 
-    private QueueApi api() {
+    private QueueApi api()
+    {
         return api.queueApi();
     }
 }

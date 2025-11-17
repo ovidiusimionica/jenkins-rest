@@ -14,39 +14,69 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.cdancy.jenkins.rest.features;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
+import com.cdancy.jenkins.rest.BaseJenkinsApiLiveTest;
+import com.cdancy.jenkins.rest.domain.plugins.Plugins;
+import com.cdancy.jenkins.rest.parsers.ResponseResult;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionFactory;
 import org.testng.annotations.Test;
 
-import com.cdancy.jenkins.rest.BaseJenkinsApiLiveTest;
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
-import com.cdancy.jenkins.rest.domain.plugins.Plugins;
-
 @Test(groups = "live", testName = "PluginManagerApiLiveTest", singleThreaded = true)
-public class PluginManagerApiLiveTest extends BaseJenkinsApiLiveTest {
+public class PluginManagerApiLiveTest extends BaseJenkinsApiLiveTest
+{
 
     @Test
-    public void testGetPlugins() {
-        final Plugins plugins = api().plugins(3, null);
-        assertNotNull(plugins);
+    public void testGetPlugins()
+    {
+        ResponseResult<Plugins> pluginsResponse = api().plugins(3, null);
+        assertTrue(pluginsResponse.isSuccess());
+        Plugins plugins = pluginsResponse.getEntity();
         assertTrue(plugins.errors().isEmpty());
-        assertFalse(plugins.plugins().isEmpty());
-        assertNotNull(plugins.plugins().get(0).shortName());
+        assertFalse(plugins.getPlugins().isEmpty());
+        assertNotNull(plugins.getPlugins().getFirst().getShortName());
     }
 
     @Test
-    public void testInstallNecessaryPlugins() {
-        final RequestStatus status = api().installNecessaryPlugins("artifactory@2.2.1");
+    public void testInstallNecessaryPlugins()
+    {
+        ResponseResult<Void> status = api().installNecessaryPluginsById("workflow-scm-step@427.v4ca_6512e7df1");
         assertNotNull(status);
-        assertTrue(status.value());
-        assertTrue(status.errors().isEmpty());
+        assertTrue(status.isSuccess());
+
+        assertPluginInstalled("workflow-scm-step", 1, 0);
+
     }
 
-    private PluginManagerApi api() {
+    private void assertPluginInstalled(String pluginName, int expected, int delaySeconds) {
+        Awaitility.await().pollDelay(delaySeconds, SECONDS).atMost(5, SECONDS).untilAsserted(() -> {
+            ResponseResult<Plugins> pluginsResponse = api().plugins(3, null);
+            Plugins plugins = pluginsResponse.getEntity();
+            assertEquals(plugins.getPlugins().stream().filter(plugin ->
+                plugin.getShortName().equals(pluginName)).count(), expected);
+        });
+    }
+
+    @Test
+    public void testInstallUnknownPlugins() {
+        ResponseResult<Void> status = api().installNecessaryPluginsById("dummy_unknown_plugin@0.0.1");
+        assertNotNull(status);
+        assertTrue(status.isSuccess());
+
+        assertPluginInstalled("dummy_unknown_plugin", 0, 3);
+    }
+
+    private PluginManagerApi api()
+    {
         return api.pluginManagerApi();
     }
 }

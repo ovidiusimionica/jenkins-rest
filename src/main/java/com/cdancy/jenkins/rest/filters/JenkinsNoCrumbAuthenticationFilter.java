@@ -17,33 +17,31 @@
 
 package com.cdancy.jenkins.rest.filters;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import static com.cdancy.jenkins.rest.auth.AuthenticationType.Anonymous;
+import static jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION;
 
 import com.cdancy.jenkins.rest.JenkinsAuthentication;
-import com.cdancy.jenkins.rest.auth.AuthenticationType;
+import jakarta.ws.rs.client.ClientRequestContext;
+import jakarta.ws.rs.client.ClientRequestFilter;
+import java.io.IOException;
 
-import org.jclouds.http.HttpException;
-import org.jclouds.http.HttpRequest;
-import org.jclouds.http.HttpRequestFilter;
-import com.google.common.net.HttpHeaders;
-
-@Singleton
-public class JenkinsNoCrumbAuthenticationFilter implements HttpRequestFilter {
+public class JenkinsNoCrumbAuthenticationFilter implements ClientRequestFilter
+{
     private final JenkinsAuthentication creds;
 
-    @Inject
-    JenkinsNoCrumbAuthenticationFilter(final JenkinsAuthentication creds) {
+    public JenkinsNoCrumbAuthenticationFilter(final JenkinsAuthentication creds)
+    {
         this.creds = creds;
     }
 
     @Override
-    public HttpRequest filter(final HttpRequest request) throws HttpException {
-        if (creds.authType() == AuthenticationType.Anonymous) {
-            return request;
-        } else {
+    public void filter(ClientRequestContext requestContext) throws IOException
+    {
+
+        if (creds.authType() != Anonymous)
+        {
             final String authHeader = creds.authType().getAuthScheme() + " " + creds.authValue();
-            return request.toBuilder().addHeader(HttpHeaders.AUTHORIZATION, authHeader).build();
+            requestContext.getHeaders().putSingle(AUTHORIZATION, authHeader);
         }
     }
 }

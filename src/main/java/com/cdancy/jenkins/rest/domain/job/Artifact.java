@@ -17,26 +17,35 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.google.auto.value.AutoValue;
+public final class Artifact {
 
-@AutoValue
-public abstract class Artifact {
+    private final String displayPath;
+    private final String fileName;
+    private final String relativePath;
 
-   @Nullable
-   public abstract String displayPath();
+    @JsonCreator
+    public Artifact(
+        @JsonProperty("displayPath") String displayPath,
+        @JsonProperty("fileName") String fileName,
+        @JsonProperty("relativePath") String relativePath
+    ) {
+        this.displayPath = displayPath;
+        this.fileName = fileName;
+        this.relativePath = relativePath;
+    }
 
-   public abstract String fileName();
+    public String getDisplayPath() {
+        return displayPath;
+    }
 
-   public abstract String relativePath();
+    public String getFileName() {
+        return fileName;
+    }
 
-   Artifact() {
-   }
-
-   @SerializedNames({ "displayPath", "fileName", "relativePath" })
-   public static Artifact create(String displayPath, String fileName, String relativePath) {
-      return new AutoValue_Artifact(displayPath, fileName, relativePath);
-   }
+    public String getRelativePath() {
+        return relativePath;
+    }
 }

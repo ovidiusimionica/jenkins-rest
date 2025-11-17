@@ -14,60 +14,72 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.cdancy.jenkins.rest.features;
 
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
+
 import com.cdancy.jenkins.rest.BaseJenkinsApiLiveTest;
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
-import com.cdancy.jenkins.rest.domain.user.*;
+import com.cdancy.jenkins.rest.domain.user.ApiToken;
+import com.cdancy.jenkins.rest.domain.user.ApiTokenData;
+import com.cdancy.jenkins.rest.domain.user.User;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
-
 @Test(groups = "live", testName = "UserApiLiveTest", singleThreaded = true)
-public class UserApiLiveTest extends BaseJenkinsApiLiveTest {
+public class UserApiLiveTest extends BaseJenkinsApiLiveTest
+{
 
     ApiToken token;
 
     @Test
-    public void testGetUser() {
-        User user = api().get();
+    public void testGetUser()
+    {
+        User user = api().get().getEntity();
         assertNotNull(user);
-        assertNotNull(user.absoluteUrl());
-        assertEquals(user.absoluteUrl(), System.getProperty("test.jenkins.endpoint") + "/user/admin");
-        assertTrue(user.description() == null || user.description().equals(""));
-        assertNotNull(user.fullName());
-        assertEquals(user.fullName(), "admin");
-        assertNotNull(user.id());
-        assertEquals(user.id(), "admin");
+        assertNotNull(user.getAbsoluteUrl());
+        assertEquals(user.getAbsoluteUrl(), ENDPOINT + "/user/admin");
+        assertTrue(user.getDescription() == null || user.getDescription().isEmpty());
+        assertNotNull(user.getFullName());
+        assertEquals(user.getFullName(), "admin");
+        assertNotNull(user.getId());
+        assertEquals(user.getId(), "admin");
     }
 
     @Test
-    public void testGenerateNewToken() {
-        token = api().generateNewToken("user-api-test-token");
+    public void testGenerateNewToken()
+    {
+        var tokenResponse = api().generateNewToken("user-api-test-token");
+        token = tokenResponse.getEntity();
         assertNotNull(token);
-        assertEquals(token.status(), "ok");
-        assertNotNull(token.data());
-        assertNotNull(token.data().tokenName());
-        assertEquals(token.data().tokenName(), "user-api-test-token");
-        assertNotNull(token.data().tokenUuid());
-        assertNotNull(token.data().tokenValue());
+        assertEquals(token.getStatus(), "ok");
+        ApiTokenData tokenData = token.getData();
+        assertNotNull(tokenData);
+        assertNotNull(tokenData.getTokenName());
+        assertEquals(tokenData.getTokenName(), "user-api-test-token");
+        assertNotNull(tokenData.getTokenUuid());
+        assertNotNull(tokenData.getTokenValue());
     }
 
     @Test(dependsOnMethods = "testGenerateNewToken")
-    public void testRevokeApiToken() {
-        RequestStatus status = api().revoke(token.data().tokenUuid());
+    public void testRevokeApiToken()
+    {
+        var status = api().revoke(token.getData().getTokenUuid());
         // Jenkins returns 200 whether the tokenUuid is correct or not.
-        assertTrue(status.value());
+        assertTrue(status.isSuccess());
     }
 
     @Test
-    public void testRevokeApiTokenWithEmptyUuid() {
-        RequestStatus status = api().revoke("");
-        assertFalse(status.value());
-        // TODO: Deal with the HTML response from Jenkins Stapler
+    public void testRevokeApiTokenWithEmptyUuid()
+    {
+        var status = api().revoke("");
+        assertFalse(status.isSuccess());
     }
 
-    private UserApi api() {
+    private UserApi api()
+    {
         return api.userApi();
     }
 }

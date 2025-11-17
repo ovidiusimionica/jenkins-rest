@@ -19,39 +19,43 @@ package com.cdancy.jenkins.rest.domain.crumb;
 
 import java.util.List;
 
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.cdancy.jenkins.rest.domain.common.Error;
-import com.cdancy.jenkins.rest.domain.common.ErrorsHolder;
-import com.cdancy.jenkins.rest.JenkinsUtils;
-import com.google.auto.value.AutoValue;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Crumb {
 
-@AutoValue
-public abstract class Crumb implements ErrorsHolder {
+    @JsonProperty("crumbRequestField")
+    private String crumbRequestField;
 
-    @Nullable
-    public abstract String value();
+    @JsonProperty("crumb")
+    private String crumb;
 
-    @Nullable
-    public abstract String sessionIdCookie();
+    /** Filled from Set-Cookie header */
+    private String sessionIdCookie;
 
-    @SerializedNames({ "value", "errors" })
-    public static Crumb create(final String value,
-            final List<Error> errors) {
+    public Crumb() {}
 
-        return create(value, null, errors);
+    public Crumb(String crumbRequestField, String crumb, String sessionIdCookie) {
+        this.crumbRequestField = crumbRequestField;
+        this.crumb = crumb;
+        this.sessionIdCookie = sessionIdCookie;
     }
 
-    @SerializedNames({ "value", "sessionIdCookie" })
-    public static Crumb create(final String value, final String sessionIdCookie) {
-        return create(value, sessionIdCookie, null);
-    }
+    public String getCrumbRequestField() { return crumbRequestField; }
+    public String getCrumb() { return crumb; }
+    public String getSessionIdCookie() { return sessionIdCookie; }
 
-    private static Crumb create(final String value, final String sessionIdCookie,
-            final List<Error> errors) {
+    public void setCrumbRequestField(String v) { this.crumbRequestField = v; }
+    public void setCrumb(String v) { this.crumb = v; }
+    public void setSessionIdCookie(String v) { this.sessionIdCookie = v; }
 
-        return new AutoValue_Crumb(JenkinsUtils.nullToEmpty(errors), value,
-                sessionIdCookie);
+    @Override
+    public String toString() {
+        return "Crumb{" +
+            "crumbRequestField='" + crumbRequestField + '\'' +
+            ", crumb='" + crumb + '\'' +
+            ", sessionIdCookie='" + sessionIdCookie + '\'' +
+            '}';
     }
 }

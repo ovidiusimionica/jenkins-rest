@@ -16,21 +16,35 @@
  */
 package com.cdancy.jenkins.rest.domain.user;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@AutoValue
-public abstract class ApiTokenData {
+public final class ApiTokenData {
 
-    public abstract String tokenName();
-    public abstract String tokenUuid();
-    public abstract String tokenValue();
+    private final String tokenName;
+    private final String tokenUuid;
+    private final String tokenValue;
 
-    ApiTokenData() {
+    @JsonCreator
+    public ApiTokenData(
+        @JsonProperty("tokenName") String tokenName,
+        @JsonProperty("tokenUuid") String tokenUuid,
+        @JsonProperty("tokenValue") String tokenValue
+    ) {
+        this.tokenName = tokenName;
+        this.tokenUuid = tokenUuid;
+        this.tokenValue = tokenValue;
     }
 
-    @SerializedNames({"tokenName", "tokenUuid", "tokenValue"})
-    public static ApiTokenData create(final String tokenName, final String tokenUuid, final String tokenValue) {
-        return new AutoValue_ApiTokenData(tokenName, tokenUuid, tokenValue);
+    public String getTokenName() {
+        return tokenName;
+    }
+
+    public String getTokenUuid() {
+        return tokenUuid;
+    }
+
+    public String getTokenValue() {
+        return tokenValue;
     }
 }

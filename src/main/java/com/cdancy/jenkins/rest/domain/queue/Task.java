@@ -17,25 +17,30 @@
 
 package com.cdancy.jenkins.rest.domain.queue;
 
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.google.auto.value.AutoValue;
+@JsonIgnoreProperties({"_class", "color"})
+public final class Task {
 
-@AutoValue
-public abstract class Task {
+    private final String name;
+    private final String url;
 
-   @Nullable
-   public abstract String name();
+    @JsonCreator
+    public Task(
+        @JsonProperty("name") String name,
+        @JsonProperty("url") String url
+    ) {
+        this.name = name;
+        this.url = url;
+    }
 
-   @Nullable
-   public abstract String url();
+    public String getName() {
+        return name;
+    }
 
-   Task() {
-   }
-
-   @SerializedNames({ "name", "url" })
-   public static Task create(String name, String url) {
-      return new AutoValue_Task(name, url);
-   }
+    public String getUrl() {
+        return url;
+    }
 }

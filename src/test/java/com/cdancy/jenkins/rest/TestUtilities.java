@@ -20,13 +20,47 @@ package com.cdancy.jenkins.rest;
 /**
  * Static methods for generating test data.
  */
-public class TestUtilities extends JenkinsUtils {
+public class TestUtilities {
 
     public static final String TEST_CREDENTIALS_SYSTEM_PROPERTY = "test.jenkins.usernamePassword";
     public static final String TEST_CREDENTIALS_ENVIRONMENT_VARIABLE = TEST_CREDENTIALS_SYSTEM_PROPERTY.replaceAll("\\.", "_").toUpperCase();
 
     public static final String TEST_API_TOKEN_SYSTEM_PROPERTY = "test.jenkins.usernameApiToken";
     public static final String TEST_API_TOKEN_ENVIRONMENT_VARIABLE = TEST_API_TOKEN_SYSTEM_PROPERTY.replaceAll("\\.", "_").toUpperCase();
+
+
+
+    /**
+     * If the passed systemProperty is non-null we will attempt to query
+     * the `System Properties` for a value and return it. If no value
+     * was found, and environmentVariable is non-null, we will attempt to
+     * query the `Environment Variables` for a value and return it. If
+     * both are either null or can't be found than null will be returned.
+     *
+     * @param systemProperty possibly existent System Property.
+     * @param environmentVariable possibly existent Environment Variable.
+     * @return found external value or null.
+     */
+    public static String retriveExternalValue(final String systemProperty,
+                                              final String environmentVariable) {
+
+        // 1.) Search for System Property
+        if (systemProperty != null) {
+            final String value = System.getProperty(systemProperty);
+            if (value != null) {
+                return value;
+            }
+        }
+
+        if (environmentVariable != null) {
+            final String value = System.getenv().get(environmentVariable);
+            if (value != null) {
+                return value;
+            }
+        }
+
+        return null;
+    }
 
     /**
      * Find credentials (ApiToken, UsernamePassword, or Anonymous) from system/environment.
@@ -38,8 +72,7 @@ public class TestUtilities extends JenkinsUtils {
         final JenkinsAuthentication.Builder inferAuth = JenkinsAuthentication.builder();
 
         // 1.) Check for API Token as this requires no crumb hence is faster
-        String authValue = JenkinsUtils
-                .retriveExternalValue(TEST_API_TOKEN_SYSTEM_PROPERTY,
+        String authValue = retriveExternalValue(TEST_API_TOKEN_SYSTEM_PROPERTY,
                         TEST_API_TOKEN_ENVIRONMENT_VARIABLE);
         if (authValue != null) {
             inferAuth.apiToken(authValue);
@@ -47,8 +80,7 @@ public class TestUtilities extends JenkinsUtils {
         }
 
         // 2.) Check for UsernamePassword auth credentials.
-        authValue = JenkinsUtils
-                .retriveExternalValue(TEST_CREDENTIALS_SYSTEM_PROPERTY,
+        authValue = retriveExternalValue(TEST_CREDENTIALS_SYSTEM_PROPERTY,
                         TEST_CREDENTIALS_ENVIRONMENT_VARIABLE);
         if (authValue != null) {
             inferAuth.credentials(authValue);

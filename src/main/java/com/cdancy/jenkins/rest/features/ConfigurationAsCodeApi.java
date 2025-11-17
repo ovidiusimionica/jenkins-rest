@@ -17,38 +17,44 @@
 
 package com.cdancy.jenkins.rest.features;
 
-import javax.inject.Named;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
+import com.cdancy.jenkins.rest.parsers.ResponseResult;
 
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
-import com.cdancy.jenkins.rest.parsers.RequestStatusParser;
-import org.jclouds.rest.annotations.RequestFilters;
-import org.jclouds.rest.annotations.ResponseParser;
-import org.jclouds.rest.annotations.Fallback;
-import org.jclouds.rest.annotations.Payload;
-import org.jclouds.rest.annotations.PayloadParam;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.of;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.ofVoid;
 
-import com.cdancy.jenkins.rest.fallbacks.JenkinsFallbacks;
-import com.cdancy.jenkins.rest.filters.JenkinsAuthenticationFilter;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
-@RequestFilters(JenkinsAuthenticationFilter.class)
+/**
+ * Modernized Configuration-as-Code API using JAX-RS ResponseResult pattern.
+ */
 @Path("/configuration-as-code")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
 public interface ConfigurationAsCodeApi {
 
-    @Named("casc:check")
+    // -----------------------
+    // RAW: check configuration
+    // -----------------------
+    @POST
     @Path("/check")
-    @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-    @ResponseParser(RequestStatusParser.class)
-    @Payload("{cascYml}")
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response checkRaw(String cascYml);
+
+    default ResponseResult<Void> check(String cascYml) {
+        return ofVoid(checkRaw(cascYml));
+    }
+
+    // -----------------------
+    // RAW: apply configuration
+    // -----------------------
     @POST
-    RequestStatus check(@PayloadParam(value = "cascYml") String cascYml);
-    
-    @Named("casc:apply")
     @Path("/apply")
-    @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-    @ResponseParser(RequestStatusParser.class)
-    @Payload("{cascYml}")
-    @POST
-    RequestStatus apply(@PayloadParam(value = "cascYml") String cascYml);
+    @Consumes(MediaType.TEXT_PLAIN)
+    Response applyRaw(String cascYml);
+
+    default ResponseResult<Void> apply(String cascYml) {
+        return ofVoid(applyRaw(cascYml));
+    }
 }

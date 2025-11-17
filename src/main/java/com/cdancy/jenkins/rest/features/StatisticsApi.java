@@ -17,24 +17,29 @@
 
 package com.cdancy.jenkins.rest.features;
 
-import javax.inject.Named;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.MediaType;
-
-import org.jclouds.rest.annotations.RequestFilters;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.of;
 
 import com.cdancy.jenkins.rest.domain.statistics.OverallLoad;
-import com.cdancy.jenkins.rest.filters.JenkinsAuthenticationFilter;
+import com.cdancy.jenkins.rest.parsers.ResponseResult;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
-@RequestFilters(JenkinsAuthenticationFilter.class)
-@Consumes(MediaType.APPLICATION_JSON)
 @Path("/")
+@Consumes(MediaType.APPLICATION_JSON)
 public interface StatisticsApi {
 
-   @Named("statistics:overall-load")
-   @Path("/overallLoad/api/json")
-   @GET
-   OverallLoad overallLoad();
+    @GET
+    @Path("/overallLoad/api/json")
+    Response overallLoadRaw();
+
+    /**
+     * Default helper to retrieve overall system load with functional-style response.
+     */
+    default ResponseResult<OverallLoad> overallLoad() {
+        Response response = overallLoadRaw();
+        return of(response, OverallLoad.class);
+    }
 }

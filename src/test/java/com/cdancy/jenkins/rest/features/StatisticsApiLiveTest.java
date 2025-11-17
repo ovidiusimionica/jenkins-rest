@@ -27,7 +27,7 @@ import com.cdancy.jenkins.rest.domain.statistics.OverallLoad;
 public class StatisticsApiLiveTest extends BaseJenkinsApiLiveTest {
     @Test
     public void testOverallLoad() {
-        OverallLoad load = api().overallLoad();
+        OverallLoad load = api().overallLoad().getEntity();
         assertNotNull(load);
     }
     private StatisticsApi api() {

@@ -17,34 +17,44 @@
 
 package com.cdancy.jenkins.rest.domain.plugins;
 
-import com.cdancy.jenkins.rest.JenkinsUtils;
 import com.cdancy.jenkins.rest.domain.common.ErrorsHolder;
-import com.cdancy.jenkins.rest.domain.common.Error;
+import com.cdancy.jenkins.rest.domain.common.GenericError;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
-
-import com.google.auto.value.AutoValue;
-
+import java.util.Collections;
 import java.util.List;
 
-@AutoValue
-public abstract class Plugins implements ErrorsHolder {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public final class Plugins implements ErrorsHolder
+{
 
-    @Nullable
-    public abstract String clazz();
-    
-    public abstract List<Plugin> plugins();
+    private final String clazz;
+    private final List<Plugin> plugins;
+    private final List<GenericError> errors;
 
-    Plugins() {
+    @JsonCreator
+    public Plugins(
+        @JsonProperty("_class") String clazz,
+        @JsonProperty("plugins") List<Plugin> plugins,
+        @JsonProperty("errors") List<GenericError> errors
+    ) {
+        this.clazz = clazz;
+        this.plugins = plugins != null ? List.copyOf(plugins) : Collections.emptyList();
+        this.errors = errors != null ? List.copyOf(errors) : Collections.emptyList();
     }
 
-    @SerializedNames({ "_class", "plugins", "errors" })
-    public static Plugins create(final String clazz,
-            final List<Plugin> plugins,
-            final List<Error> errors) {
-        return new AutoValue_Plugins(JenkinsUtils.nullToEmpty(errors),
-                clazz,
-                JenkinsUtils.nullToEmpty(plugins));
+    public String getClazz() {
+        return clazz;
+    }
+
+    public List<Plugin> getPlugins() {
+        return plugins;
+    }
+
+    @Override
+    public List<GenericError> errors() {
+        return errors;
     }
 }

@@ -1,0 +1,45 @@
+plugins:
+    - artifactId: antisamy-markup-formatter
+#    - artifactId: cloudbees-credentials
+    - artifactId: configuration-as-code-groovy
+      source:
+        version: 1.1
+    - artifactId: configuration-as-code
+      source:
+        version: 1873.vea_5814ca_9c93
+    - artifactId: plugin-util-api
+      source:
+        version: 4.1.0
+    - artifactId: workflow-aggregator
+      source:
+        version: 600.vb_57cdd26fdd7
+    - artifactId: workflow-job
+      source:
+        version: 1436.vfa_244484591f
+    - artifactId: workflow-multibranch
+      source:
+        version: 791.v28fb_f74dfca_e
+    - artifactId: scm-api
+      source:
+        version: 696.v778d637b_a_762
+    - artifactId: mailer
+      source:
+        version: 488.v0c9639c1a_eb_3
+    - artifactId: credentials-binding
+      source:
+        version: 681.vf91669a_32e45
+    - artifactId: credentials
+      source:
+        version: 1380.va_435002fa_924
+    - artifactId: display-url-api
+      source:
+        version: 2.204.vf6fddd8a_8b_e9
+    - artifactId: cloudbees-folder
+      source:
+        version: 6.942.vb_43318a_156b_2
+    - artifactId: trilead-api
+      source:
+        version: 2.147.vb_73cc728a_32e
+    - artifactId: badge
+      source:
+        version: 2.3

@@ -16,33 +16,44 @@
  */
 package com.cdancy.jenkins.rest.domain.user;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.google.auto.value.AutoValue;
-import com.google.common.collect.ImmutableList;
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+@JsonIgnoreProperties({"_class", "property"})
+public final class User {
 
-@AutoValue
-public abstract class User {
+    private final String absoluteUrl;
+    private final String description;
+    private final String fullName;
+    private final String id;
 
-    public abstract String absoluteUrl();
-
-    @Nullable
-    public abstract String description();
-
-    public abstract String fullName();
-
-    public abstract String id();
-
-    // TODO: Find a way to support properties, which is a list of different extensions of a base class
-    // public abstract List<Property> properties();
-
-    User() {
+    @JsonCreator
+    public User(
+        @JsonProperty("absoluteUrl") String absoluteUrl,
+        @JsonProperty("description") String description,
+        @JsonProperty("fullName") String fullName,
+        @JsonProperty("id") String id
+    ) {
+        this.absoluteUrl = absoluteUrl;
+        this.description = description;
+        this.fullName = fullName;
+        this.id = id;
     }
 
-    @SerializedNames({"absoluteUrl", "description", "fullName", "id"})
-    public static User create(final String absoluteUrl, final String description, final String fullName, final String id) {
-        return new AutoValue_User(absoluteUrl, description, fullName, id);
+    public String getAbsoluteUrl() {
+        return absoluteUrl;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getId() {
+        return id;
     }
 }

@@ -17,43 +17,68 @@
 
 package com.cdancy.jenkins.rest.domain.system;
 
-import com.cdancy.jenkins.rest.JenkinsUtils;
 import com.cdancy.jenkins.rest.domain.common.ErrorsHolder;
-import com.cdancy.jenkins.rest.domain.common.Error;
+import com.cdancy.jenkins.rest.domain.common.GenericError;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.jclouds.json.SerializedNames;
-import org.jclouds.javax.annotation.Nullable;
-
-import com.google.auto.value.AutoValue;
-
+import java.util.Collections;
 import java.util.List;
 
-@AutoValue
-public abstract class SystemInfo implements ErrorsHolder {
+public final class SystemInfo implements ErrorsHolder {
 
-    public abstract String hudsonVersion();
+    private final String hudsonVersion;
+    private final String jenkinsVersion;
+    private final String jenkinsSession;
+    private final String instanceIdentity;
+    private final String sshEndpoint;
+    private final String server;
+    private final List<GenericError> errors;
 
-    public abstract String jenkinsVersion();
-
-    public abstract String jenkinsSession();
-
-    public abstract String instanceIdentity();
-
-    @Nullable
-    public abstract String sshEndpoint();
-
-    public abstract String server();
-
-    SystemInfo() {
+    @JsonCreator
+    public SystemInfo(
+        @JsonProperty("hudsonVersion") String hudsonVersion,
+        @JsonProperty("jenkinsVersion") String jenkinsVersion,
+        @JsonProperty("jenkinsSession") String jenkinsSession,
+        @JsonProperty("instanceIdentity") String instanceIdentity,
+        @JsonProperty("sshEndpoint") String sshEndpoint,
+        @JsonProperty("server") String server,
+        @JsonProperty("errors") List<GenericError> errors
+    ) {
+        this.hudsonVersion = hudsonVersion;
+        this.jenkinsVersion = jenkinsVersion;
+        this.jenkinsSession = jenkinsSession;
+        this.instanceIdentity = instanceIdentity;
+        this.sshEndpoint = sshEndpoint;
+        this.server = server;
+        this.errors = errors != null ? errors : Collections.emptyList();
     }
 
-    @SerializedNames({ "hudsonVersion", "jenkinsVersion", "jenkinsSession",
-        "instanceIdentity", "sshEndpoint", "server", "errors" })
-    public static SystemInfo create(String hudsonVersion, String jenkinsVersion, String jenkinsSession,
-            String instanceIdentity,
-            String sshEndpoint, String server, final List<Error> errors) {
-        return new AutoValue_SystemInfo(JenkinsUtils.nullToEmpty(errors),
-                hudsonVersion, jenkinsVersion, jenkinsSession, 
-                instanceIdentity, sshEndpoint, server);
+    public String getHudsonVersion() {
+        return hudsonVersion;
+    }
+
+    public String getJenkinsVersion() {
+        return jenkinsVersion;
+    }
+
+    public String getJenkinsSession() {
+        return jenkinsSession;
+    }
+
+    public String getInstanceIdentity() {
+        return instanceIdentity;
+    }
+
+    public String getSshEndpoint() {
+        return sshEndpoint;
+    }
+
+    public String getServer() {
+        return server;
+    }
+
+    public List<GenericError> errors() {
+        return errors;
     }
 }

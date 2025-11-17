@@ -17,30 +17,63 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@AutoValue
-public abstract class Stage {
-   public abstract String id();
+public final class Stage {
 
-   public abstract String name();
+    private final String id;
+    private final String name;
+    private final String status;
+    private final long startTimeMillis;
+    private final long endTimeMillis;
+    private final long pauseDurationMillis;
+    private final long durationMillis;
 
-   public abstract String status();
+    @JsonCreator
+    public Stage(
+        @JsonProperty("id") String id,
+        @JsonProperty("name") String name,
+        @JsonProperty("status") String status,
+        @JsonProperty("startTimeMillis") long startTimeMillis,
+        @JsonProperty("endTimeMillis") long endTimeMillis,
+        @JsonProperty("pauseDurationMillis") long pauseDurationMillis,
+        @JsonProperty("durationMillis") long durationMillis
+    ) {
+        this.id = id;
+        this.name = name;
+        this.status = status;
+        this.startTimeMillis = startTimeMillis;
+        this.endTimeMillis = endTimeMillis;
+        this.pauseDurationMillis = pauseDurationMillis;
+        this.durationMillis = durationMillis;
+    }
 
-   public abstract long startTimeMillis();
+    public String getId() {
+        return id;
+    }
 
-   public abstract long endTimeMillis();
+    public String getName() {
+        return name;
+    }
 
-   public abstract long pauseDurationMillis();
+    public String getStatus() {
+        return status;
+    }
 
-   public abstract long durationMillis();
+    public long getStartTimeMillis() {
+        return startTimeMillis;
+    }
 
-   Stage() {
-   }
+    public long getEndTimeMillis() {
+        return endTimeMillis;
+    }
 
-   @SerializedNames({ "id", "name", "status", "startTimeMillis", "endTimeMillis", "pauseDurationMillis", "durationMillis" })
-   public static Stage create(String id, String name, String status, long startTimeMillis, long endTimeMillis, long pauseDurationMillis, long durationMillis) {
-      return new AutoValue_Stage(id, name, status, startTimeMillis, endTimeMillis, pauseDurationMillis, durationMillis);
-   }
+    public long getPauseDurationMillis() {
+        return pauseDurationMillis;
+    }
+
+    public long getDurationMillis() {
+        return durationMillis;
+    }
 }

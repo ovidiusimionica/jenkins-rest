@@ -17,33 +17,34 @@
 
 package com.cdancy.jenkins.rest;
 
-import static com.google.common.io.BaseEncoding.base64;
+import static java.util.Base64.getDecoder;
+import static java.util.Base64.getEncoder;
 
 import com.cdancy.jenkins.rest.auth.AuthenticationType;
-import com.cdancy.jenkins.rest.exception.UndetectableIdentityException;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-
-import org.jclouds.domain.Credentials;
-import org.jclouds.javax.annotation.Nullable;
 
 /**
  * Credentials instance for Jenkins authentication.
  */
-public class JenkinsAuthentication extends Credentials {
+public class JenkinsAuthentication
+{
 
     private final AuthenticationType authType;
+    private final String identity;
+    private final String credential;
 
     /**
      * Create instance of JenkinsAuthentication.
      *
-     * @param identity the identity of the credential, this would be the username for the password or the api token or the base64 encoded value.
+     * @param identity   the identity of the credential, this would be the username for the password or the api token or the base64 encoded value.
      * @param credential the username:password, or the username:apiToken, or their base64 encoded value. This is base64 encoded before being stored.
-     * @param authType authentication type (e.g. UsernamePassword, UsernameApiToken, Anonymous).
+     * @param authType   authentication type (e.g. UsernamePassword, UsernameApiToken, Anonymous).
      */
-    private JenkinsAuthentication(final String identity, final String credential, final AuthenticationType authType) {
-        super(identity,  credential.contains(":") ? base64().encode(credential.getBytes()) : credential);
+    private JenkinsAuthentication(final String identity, final String credential, final AuthenticationType authType)
+    {
+        this.identity = identity;
+        this.credential = credential.contains(":") ? getEncoder().encodeToString(credential.getBytes()) : credential;
         this.authType = authType;
     }
 
@@ -52,8 +53,8 @@ public class JenkinsAuthentication extends Credentials {
      *
      * @return the base 64 encoded authentication value.
      */
-    @Nullable
-    public String authValue() {
+    public String authValue()
+    {
         return this.credential;
     }
 
@@ -62,15 +63,23 @@ public class JenkinsAuthentication extends Credentials {
      *
      * @return the authentication type.
      */
-    public AuthenticationType authType() {
+    public AuthenticationType authType()
+    {
         return authType;
     }
 
-    public static Builder builder() {
+    public static Builder builder()
+    {
         return new Builder();
     }
 
-    public static class Builder {
+    public String getIdentity()
+    {
+        return identity;
+    }
+
+    public static class Builder
+    {
 
         private String identity = "anonymous";
         private String credential = identity + ":";
@@ -82,7 +91,8 @@ public class JenkinsAuthentication extends Credentials {
          * @param usernamePassword value to use for 'UsernamePassword' credentials. It can be the {@code username:password} in clear text or its base64 encoded value.
          * @return this Builder.
          */
-        public Builder credentials(final String usernamePassword) {
+        public Builder credentials(final String usernamePassword)
+        {
             this.identity = Objects.requireNonNull(extractIdentity(usernamePassword));
             this.credential = Objects.requireNonNull(usernamePassword);
             this.authType = AuthenticationType.UsernamePassword;
@@ -95,7 +105,8 @@ public class JenkinsAuthentication extends Credentials {
          * @param apiTokenCredentials value to use for 'ApiToken' credentials. It can be the {@code username:apiToken} in clear text or its base64 encoded value.
          * @return this Builder.
          */
-        public Builder apiToken(final String apiTokenCredentials) {
+        public Builder apiToken(final String apiTokenCredentials)
+        {
             this.identity = Objects.requireNonNull(extractIdentity(apiTokenCredentials));
             this.credential = Objects.requireNonNull(apiTokenCredentials);
             this.authType = AuthenticationType.UsernameApiToken;
@@ -104,7 +115,6 @@ public class JenkinsAuthentication extends Credentials {
 
         /**
          * Extract the identity from the credential.
-         *
          * The credential is entered by the user in one of two forms:
          * <ol>
          *  <li>Colon separated form: <code>username:password</code> or <code>username:password</code>
@@ -112,28 +122,35 @@ public class JenkinsAuthentication extends Credentials {
          * </ol>
          * Either way the identity is the username, and it can be extracted directly or by decoding.
          */
-        private String extractIdentity(final String credentialString) {
+        private String extractIdentity(final String credentialString)
+        {
             String decoded;
-            if (!credentialString.contains(":")) {
-                decoded = new String(base64().decode(credentialString),StandardCharsets.UTF_8);
-            } else {
+            if (!credentialString.contains(":"))
+            {
+                decoded = new String(getDecoder().decode(credentialString), StandardCharsets.UTF_8);
+            } else
+            {
                 decoded = credentialString;
             }
-            if (!decoded.contains(":")) {
-                throw new UndetectableIdentityException("Unable to detect the identity being used in '" + credentialString + "'. Supported types are a user:password, or a user:apiToken, or their base64 encoded value.");
+            if (!decoded.contains(":"))
+            {
+                throw new IllegalStateException("Unable to detect the identity being used in '" + credentialString +
+                    "'. Supported types are a user:password, or a user:apiToken, or their base64 encoded value.");
             }
-            if (decoded.equals(":")) {
+            if (decoded.equals(":"))
+            {
                 return "";
             }
             return decoded.split(":")[0];
         }
 
-       /**
+        /**
          * Build and instance of JenkinsCredentials.
          *
          * @return instance of JenkinsCredentials.
          */
-        public JenkinsAuthentication build() {
+        public JenkinsAuthentication build()
+        {
             return new JenkinsAuthentication(identity, credential, authType);
         }
     }

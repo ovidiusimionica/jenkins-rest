@@ -19,7 +19,7 @@ package com.cdancy.jenkins.rest.features;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.assertFalse;
 
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
+import com.cdancy.jenkins.rest.parsers.ResponseResult;
 import org.testng.annotations.Test;
 
 import com.cdancy.jenkins.rest.BaseJenkinsApiLiveTest;
@@ -30,29 +30,29 @@ public class ConfigurationAsCodeApiLiveTest extends BaseJenkinsApiLiveTest {
     @Test
     public void testCascCheck() {
         String config = payloadFromResource("/casc.yml");
-        RequestStatus success = api().check(config);
-        assertTrue(success.value());
+        ResponseResult<Void> success = api().check(config);
+        assertTrue(success.isSuccess());
     }
 
     @Test
     public void testCascApply() {
         String config = payloadFromResource("/casc.yml");
-        RequestStatus success = api().apply(config);
-        assertTrue(success.value());
+        ResponseResult<Void> success = api().apply(config);
+        assertTrue(success.isSuccess());
     }
 
     @Test
     public void testBadCascCheck() {
         String config = payloadFromResource("/casc-bad.yml");
-        RequestStatus success = api().check(config);
-        assertFalse(success.value());
+        ResponseResult<Void> success = api().apply(config);
+        assertFalse(success.isSuccess());
     }
 
     @Test
     public void testBadCascApply() {
         String config = payloadFromResource("/casc-bad.yml");
-        RequestStatus success = api().apply(config);
-        assertFalse(success.value());
+        ResponseResult<Void> success = api().apply(config);
+        assertFalse(success.isSuccess());
     }
 
     private ConfigurationAsCodeApi api() {

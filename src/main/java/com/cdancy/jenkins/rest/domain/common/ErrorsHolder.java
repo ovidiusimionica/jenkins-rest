@@ -20,11 +20,11 @@ package com.cdancy.jenkins.rest.domain.common;
 import java.util.List;
 
 /**
- * This interface should NOT be applied to "option" like classes and/or used 
- * in instances where this is applied to outgoing http traffic. This interface 
+ * This interface should NOT be applied to "option" like classes and/or used
+ * in instances where this is applied to outgoing http traffic. This interface
  * should ONLY be used for classes modeled after incoming http traffic.
  */
 public interface ErrorsHolder {
 
-    List<Error> errors();
+    List<GenericError> errors();
 }

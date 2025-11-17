@@ -17,62 +17,71 @@
 
 package com.cdancy.jenkins.rest.features;
 
-import javax.inject.Named;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-
-import org.jclouds.Fallbacks;
-import org.jclouds.rest.annotations.Fallback;
-import org.jclouds.rest.annotations.Payload;
-import org.jclouds.rest.annotations.PayloadParam;
-import org.jclouds.rest.annotations.RequestFilters;
-
 import com.cdancy.jenkins.rest.domain.user.ApiToken;
 import com.cdancy.jenkins.rest.domain.user.User;
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
-import com.cdancy.jenkins.rest.fallbacks.JenkinsFallbacks;
-import com.cdancy.jenkins.rest.filters.JenkinsAuthenticationFilter;
-import com.cdancy.jenkins.rest.filters.JenkinsUserInjectionFilter;
-import com.cdancy.jenkins.rest.parsers.RequestStatusParser;
-import org.jclouds.rest.annotations.ResponseParser;
+import com.cdancy.jenkins.rest.parsers.ResponseResult;
 
-/**
- * The UserApi.
- *
- * Implements some of the User Rest Api defined in Jenkins.
- * For the User Api, see <a href="https://github.com/jenkinsci/jenkins/blob/master/core/src/main/java/hudson/model/User.java">User.java</a>
- * For the Api Token, see <a href="https://github.com/jenkinsci/jenkins/blob/master/core/src/main/java/jenkins/security/ApiTokenProperty.java">ApiTokenProperty.java</a>.
- */
-@RequestFilters({JenkinsAuthenticationFilter.class, JenkinsUserInjectionFilter.class})
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.of;
+import static com.cdancy.jenkins.rest.parsers.ResponseResult.ofVoid;
+
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Path("/user")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
 public interface UserApi {
 
-    @Named("user:get")
-    @Path("/{user}/api/json")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.APPLICATION_JSON)
+    String CURRENT_USER = "{user}";
+
+    // -----------------------
+    // RAW: get user
+    // -----------------------
     @GET
-    User get();
+    @Path("/{user}/api/json")
+    Response getRaw(@PathParam("user") String user);
 
-    @Named("user:generateNewToken")
+    default ResponseResult<User> get() {
+        return of(getRaw(CURRENT_USER), User.class);
+    }
+
+    // -----------------------
+    // RAW: generate new token (accepts full form-encoded payload)
+    // -----------------------
+    @POST
     @Path("/{user}/descriptorByName/jenkins.security.ApiTokenProperty/generateNewToken")
-    @Fallback(Fallbacks.NullOnNotFoundOr404.class)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_FORM_URLENCODED)
-    @Payload("newTokenName={tokenName}")
-    @POST
-    ApiToken generateNewToken(@PayloadParam(value = "tokenName") String tokenName);
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.APPLICATION_JSON)
+    Response generateNewTokenRaw(@PathParam("user") String user, String payload);
 
-    @Named("user:revoke")
-    @Path("/{user}/descriptorByName/jenkins.security.ApiTokenProperty/revoke")
-    @Fallback(JenkinsFallbacks.RequestStatusOnError.class)
-    @ResponseParser(RequestStatusParser.class)
-    @Produces(MediaType.APPLICATION_FORM_URLENCODED)
-    @Payload("tokenUuid={tokenUuid}")
+    /**
+     * Helper that replicates @Payload("newTokenName={tokenName}") behaviour.
+     */
+    default ResponseResult<ApiToken> generateNewToken(String tokenName) {
+        String encoded = URLEncoder.encode(tokenName == null ? "" : tokenName, StandardCharsets.UTF_8);
+        String payload = "newTokenName=" + encoded;
+        return of(generateNewTokenRaw(CURRENT_USER, payload), ApiToken.class);
+    }
+
+    // -----------------------
+    // RAW: revoke token (accepts full form-encoded payload)
+    // -----------------------
     @POST
-    RequestStatus revoke(@PayloadParam(value = "tokenUuid") String tokenUuid);
+    @Path("/{user}/descriptorByName/jenkins.security.ApiTokenProperty/revoke")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.APPLICATION_JSON)
+    Response revokeRaw(@PathParam("user") String user, String payload);
+
+    /**
+     * Helper that replicates @Payload("tokenUuid={tokenUuid}") behaviour.
+     */
+    default ResponseResult<Void> revoke(String tokenUuid) {
+        String encoded = URLEncoder.encode(tokenUuid == null ? "" : tokenUuid, StandardCharsets.UTF_8);
+        String payload = "tokenUuid=" + encoded;
+        return ofVoid(revokeRaw(CURRENT_USER, payload));
+    }
 }

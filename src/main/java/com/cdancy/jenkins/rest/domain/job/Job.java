@@ -1,27 +1,20 @@
 package com.cdancy.jenkins.rest.domain.job;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@AutoValue
-public abstract class Job {
+public final record Job(String clazz, String name, String url, String color) {
 
-    @Nullable
-    public abstract String clazz();
-
-    public abstract String name();
-
-    public abstract String url();
-
-    @Nullable
-    public abstract String color();
-
-    Job() {
-    }
-
-    @SerializedNames({"_class", "name", "url", "color"})
-    public static Job create(final String clazz, final String name, final String url, final String color) {
-        return new AutoValue_Job(clazz, name, url, color);
+    @JsonCreator
+    public Job(
+        @JsonProperty("_class") String clazz,
+        @JsonProperty("name") String name,
+        @JsonProperty("url") String url,
+        @JsonProperty("color") String color
+    ) {
+        this.clazz = clazz;
+        this.name = name;
+        this.url = url;
+        this.color = color;
     }
 }

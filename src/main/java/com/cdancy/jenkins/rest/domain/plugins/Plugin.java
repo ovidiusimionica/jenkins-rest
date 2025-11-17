@@ -17,74 +17,114 @@
 
 package com.cdancy.jenkins.rest.domain.plugins;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.jclouds.json.SerializedNames;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public final class Plugin {
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.javax.annotation.Nullable;
+    private final Boolean active;
+    private final String backupVersion;
+    private final Boolean bundled;
+    private final Boolean deleted;
+    private final Boolean downgradable;
+    private final Boolean enabled;
+    private final Boolean hasUpdate;
+    private final String longName;
+    private final Boolean pinned;
+    private final String requiredCoreVersion;
+    private final String shortName;
+    private final String supportsDynamicLoad;
+    private final String url;
+    private final String version;
 
-@AutoValue
-public abstract class Plugin {
-
-    @Nullable
-    public abstract Boolean active();
-
-    @Nullable
-    public abstract String backupVersion();
-    
-    @Nullable    
-    public abstract Boolean bundled();
-
-    @Nullable
-    public abstract Boolean deleted();
-
-    @Nullable
-    public abstract Boolean downgradable();
-
-    @Nullable
-    public abstract Boolean enabled();
-
-    @Nullable    
-    public abstract Boolean hasUpdate();
-
-    @Nullable    
-    public abstract String longName();
-
-    @Nullable    
-    public abstract Boolean pinned();
-
-    @Nullable    
-    public abstract String requiredCoreVersion();
-
-    @Nullable    
-    public abstract String shortName();
-
-    @Nullable    
-    public abstract String supportsDynamicLoad();
-
-    @Nullable    
-    public abstract String url();
-
-    @Nullable    
-    public abstract String version();
-
-    Plugin() {
+    @JsonCreator
+    public Plugin(
+        @JsonProperty("active") Boolean active,
+        @JsonProperty("backupVersion") String backupVersion,
+        @JsonProperty("bundled") Boolean bundled,
+        @JsonProperty("deleted") Boolean deleted,
+        @JsonProperty("downgradable") Boolean downgradable,
+        @JsonProperty("enabled") Boolean enabled,
+        @JsonProperty("hasUpdate") Boolean hasUpdate,
+        @JsonProperty("longName") String longName,
+        @JsonProperty("pinned") Boolean pinned,
+        @JsonProperty("requiredCoreVersion") String requiredCoreVersion,
+        @JsonProperty("shortName") String shortName,
+        @JsonProperty("supportsDynamicLoad") String supportsDynamicLoad,
+        @JsonProperty("url") String url,
+        @JsonProperty("version") String version
+    ) {
+        this.active = active;
+        this.backupVersion = backupVersion;
+        this.bundled = bundled;
+        this.deleted = deleted;
+        this.downgradable = downgradable;
+        this.enabled = enabled;
+        this.hasUpdate = hasUpdate;
+        this.longName = longName;
+        this.pinned = pinned;
+        this.requiredCoreVersion = requiredCoreVersion;
+        this.shortName = shortName;
+        this.supportsDynamicLoad = supportsDynamicLoad;
+        this.url = url;
+        this.version = version;
     }
 
-    @SerializedNames({ "active", "backupVersion", "bundled",
-        "deleted", "downgradable", "enabled",
-        "hasUpdate", "longName", "pinned", 
-        "requiredCoreVersion", "shortName", "supportsDynamicLoad",
-        "url", "version"})
-    public static Plugin create(Boolean active, String backupVersion, Boolean bundled,
-            Boolean deleted, Boolean downgradable, Boolean enabled,
-            Boolean hasUpdate, String longName, Boolean pinned,
-            String requiredCoreVersion, String shortName, String supportsDynamicLoad,
-            String url, String version) {
-        return new AutoValue_Plugin(active, backupVersion, bundled,
-            deleted, downgradable, enabled,
-            hasUpdate, longName, pinned,
-            requiredCoreVersion, shortName, supportsDynamicLoad,
-            url, version);
+    public Boolean getActive() {
+        return active;
+    }
+
+    public String getBackupVersion() {
+        return backupVersion;
+    }
+
+    public Boolean getBundled() {
+        return bundled;
+    }
+
+    public Boolean getDeleted() {
+        return deleted;
+    }
+
+    public Boolean getDowngradable() {
+        return downgradable;
+    }
+
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
+    public Boolean getHasUpdate() {
+        return hasUpdate;
+    }
+
+    public String getLongName() {
+        return longName;
+    }
+
+    public Boolean getPinned() {
+        return pinned;
+    }
+
+    public String getRequiredCoreVersion() {
+        return requiredCoreVersion;
+    }
+
+    public String getShortName() {
+        return shortName;
+    }
+
+    public String getSupportsDynamicLoad() {
+        return supportsDynamicLoad;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public String getVersion() {
+        return version;
     }
 }

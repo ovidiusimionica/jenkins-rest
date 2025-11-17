@@ -17,38 +17,59 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.Collections;
 import java.util.List;
 
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+public final class ChangeSet {
 
-import com.google.auto.value.AutoValue;
-import com.google.common.collect.ImmutableList;
+    private final List<String> affectedPaths;
+    private final String commitId;
+    private final long timestamp;
+    private final Culprit author;
+    private final String authorEmail;
+    private final String comment;
 
-@AutoValue
-public abstract class ChangeSet {
+    @JsonCreator
+    public ChangeSet(
+        @JsonProperty("affectedPaths") List<String> affectedPaths,
+        @JsonProperty("commitId") String commitId,
+        @JsonProperty("timestamp") long timestamp,
+        @JsonProperty("author") Culprit author,
+        @JsonProperty("authorEmail") String authorEmail,
+        @JsonProperty("comment") String comment
+    ) {
+        this.affectedPaths = affectedPaths != null ? List.copyOf(affectedPaths) : Collections.emptyList();
+        this.commitId = commitId;
+        this.timestamp = timestamp;
+        this.author = author;
+        this.authorEmail = authorEmail;
+        this.comment = comment;
+    }
 
-   public abstract List<String> affectedPaths();
+    public List<String> getAffectedPaths() {
+        return affectedPaths;
+    }
 
-   public abstract String commitId();
+    public String getCommitId() {
+        return commitId;
+    }
 
-   public abstract long timestamp();
+    public long getTimestamp() {
+        return timestamp;
+    }
 
-   public abstract Culprit author();
+    public Culprit getAuthor() {
+        return author;
+    }
 
-   @Nullable
-   public abstract String authorEmail();
+    public String getAuthorEmail() {
+        return authorEmail;
+    }
 
-   @Nullable
-   public abstract String comment();
-
-   ChangeSet() {
-   }
-
-   @SerializedNames({ "affectedPaths", "commitId", "timestamp", "author", "authorEmail", "comment" })
-   public static ChangeSet create(List<String> affectedPaths, String commitId, long timestamp, Culprit author, String authorEmail, String comment) {
-      return new AutoValue_ChangeSet(
-         affectedPaths != null ? ImmutableList.copyOf(affectedPaths) : ImmutableList.<String> of(), 
-         commitId, timestamp, author, authorEmail, comment);
-   }
+    public String getComment() {
+        return comment;
+    }
 }

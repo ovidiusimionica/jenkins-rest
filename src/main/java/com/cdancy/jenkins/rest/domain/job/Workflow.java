@@ -17,29 +17,52 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.Collections;
 import java.util.List;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.json.SerializedNames;
+public final class Workflow {
 
-@AutoValue
-public abstract class Workflow {
+    private final String name;
+    private final String status;
+    private final long startTimeMillis;
+    private final long durationTimeMillis;
+    private final List<Stage> stages;
 
-   public abstract String name();
+    @JsonCreator
+    public Workflow(
+        @JsonProperty("name") String name,
+        @JsonProperty("status") String status,
+        @JsonProperty("startTimeMillis") long startTimeMillis,
+        @JsonProperty("durationTimeMillis") long durationTimeMillis,
+        @JsonProperty("stages") List<Stage> stages
+    ) {
+        this.name = name;
+        this.status = status;
+        this.startTimeMillis = startTimeMillis;
+        this.durationTimeMillis = durationTimeMillis;
+        this.stages = stages != null ? List.copyOf(stages) : Collections.emptyList();
+    }
 
-   public abstract String status();
+    public String getName() {
+        return name;
+    }
 
-   public abstract long startTimeMillis();
+    public String getStatus() {
+        return status;
+    }
 
-   public abstract long durationTimeMillis();
+    public long getStartTimeMillis() {
+        return startTimeMillis;
+    }
 
-   public abstract List<Stage> stages();
+    public long getDurationTimeMillis() {
+        return durationTimeMillis;
+    }
 
-   Workflow() {
-   }
-
-   @SerializedNames({ "name", "status", "startTimeMillis", "durationTimeMillis", "stages" })
-   public static Workflow create(String name, String status, long startTimeMillis, long durationTimeMillis, List<Stage> stages) {
-      return new AutoValue_Workflow(name, status, startTimeMillis, durationTimeMillis, stages);
-   }
+    public List<Stage> getStages() {
+        return stages;
+    }
 }

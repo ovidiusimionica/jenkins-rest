@@ -17,26 +17,8 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@AutoValue
-public abstract class Parameter {
-
-    @Nullable
-    public abstract String clazz();
-
-    public abstract String name();
-
-    @Nullable
-    public abstract String value();
-
-    Parameter() {
-    }
-
-    @SerializedNames({"_class", "name", "value"})
-    public static Parameter create(final String clazz, final String name, final String value) {
-        return new AutoValue_Parameter(clazz, name, value);
-    }
-}
+public final record Parameter(@JsonProperty("_class") String clazz, @JsonProperty("name") String name, @JsonProperty("value") String value)
+{
+};

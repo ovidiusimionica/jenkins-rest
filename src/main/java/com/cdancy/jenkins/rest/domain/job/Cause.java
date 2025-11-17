@@ -17,29 +17,43 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@AutoValue
-public abstract class Cause {
+public final class Cause {
 
-    @Nullable
-    public abstract String clazz();
+    private final String clazz;
+    private final String shortDescription;
+    private final String userId;
+    private final String userName;
 
-    public abstract String shortDescription();
-
-    @Nullable
-    public abstract String userId();
-
-    @Nullable
-    public abstract String userName();
-
-    Cause() {
+    @JsonCreator
+    public Cause(
+        @JsonProperty("_class") String clazz,
+        @JsonProperty("shortDescription") String shortDescription,
+        @JsonProperty("userId") String userId,
+        @JsonProperty("userName") String userName
+    ) {
+        this.clazz = clazz;
+        this.shortDescription = shortDescription;
+        this.userId = userId;
+        this.userName = userName;
     }
 
-    @SerializedNames({"_class", "shortDescription", "userId", "userName"})
-    public static Cause create(final String clazz, final String shortDescription, final String userId, final String userName) {
-        return new AutoValue_Cause(clazz, shortDescription, userId, userName);
+    @JsonProperty("_class")
+    public String getClazz() {
+        return clazz;
+    }
+
+    public String getShortDescription() {
+        return shortDescription;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public String getUserName() {
+        return userName;
     }
 }

@@ -31,8 +31,7 @@ public class CrumbIssuerApiLiveTest extends BaseJenkinsApiLiveTest {
     public void testGetCrumb() {
         final Crumb crumb = api().crumb();
         assertNotNull(crumb);
-        assertNotNull(crumb.value());
-        assertTrue(crumb.errors().isEmpty());
+        assertNotNull(crumb.getCrumb());
     }
 
     private CrumbIssuerApi api() {

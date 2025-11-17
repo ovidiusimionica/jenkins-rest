@@ -17,28 +17,38 @@
 
 package com.cdancy.jenkins.rest.domain.job;
 
-import com.google.auto.value.AutoValue;
-import org.jclouds.javax.annotation.Nullable;
-import org.jclouds.json.SerializedNames;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-@AutoValue
-public abstract class JobList {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public final class JobList {
 
-    @Nullable
-    public abstract String clazz();
+    private final String clazz;
+    private final List<Job> jobs;
+    private final String url;
 
-    public abstract List<Job> jobs();
-
-    @Nullable
-    public abstract String url();
-
-    JobList() {
+    @JsonCreator
+    public JobList(
+        @JsonProperty("_class") String clazz,
+        @JsonProperty("jobs") List<Job> jobs,
+        @JsonProperty("url") String url
+    ) {
+        this.clazz = clazz;
+        this.jobs = jobs;
+        this.url = url;
     }
 
-    @SerializedNames({"_class", "jobs", "url"})
-    public static JobList create(final String clazz, final List<Job> jobs, final String url) {
-        return new AutoValue_JobList(clazz, jobs, url);
+    public String getClazz() {
+        return clazz;
+    }
+
+    public List<Job> getJobs() {
+        return jobs;
+    }
+
+    public String getUrl() {
+        return url;
     }
 }
