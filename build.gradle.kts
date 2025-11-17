@@ -76,10 +76,12 @@ val intTest = tasks.register<Test>("intTest") {
     useTestNG()
     include("**/**LiveTest*")
     maxParallelForks = 1
+    systemProperty("user.timezone", "UTC")
+    maxHeapSize = "2g"
 
     testLogging {
         showStandardStreams = true
-        events(TestLogEvent.STARTED, TestLogEvent.PASSED, TestLogEvent.FAILED)
+        events = setOf(TestLogEvent.FAILED, TestLogEvent.SKIPPED)
     }
 
     val possibleUsernameApiToken = project.findProperty("testJenkinsUsernameApiToken")?.toString()

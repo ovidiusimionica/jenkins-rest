@@ -51,7 +51,6 @@ tasks.withType<Jar>() {
 tasks.withType<Test> {
     systemProperty("user.timezone", "UTC")
     maxHeapSize = "2g"
-    useJUnitPlatform()
     testLogging {
         events = setOf(TestLogEvent.FAILED, TestLogEvent.SKIPPED)
         exceptionFormat = TestExceptionFormat.FULL
