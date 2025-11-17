@@ -1,6 +1,6 @@
 # jenkins-rest
 
-I want thank to Christopher Dancy for doing the heavy lifting by describing the Jenkins rest API ans a java library!!!
+I want thank to Christopher Dancy for doing the heavy lifting by describing the Jenkins rest API as a java library!!!
 
 The following is a NOTICE oF CHANGE and DEPRECATION:
 
